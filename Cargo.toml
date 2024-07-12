@@ -1,6 +1,13 @@
 [package]
 name = "gatti"
+description = "Fast and reliable programming language."
 version = "0.0.0"
 edition = "2021"
+license = "BSD-2-Clause"
+authors = ["Thibault Vincent <th1bault.vincent@proton.me>"]
 
 [dependencies]
+termcolor = "1.4.1"
+
+[[bin]]
+name = "gic"
