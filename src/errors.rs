@@ -36,7 +36,7 @@ impl Level {
                 spec.set_bold(true);
             }
             Level::Note => {
-                spec.set_fg(Some(Color::Green)).set_intense(true);
+                spec.set_fg(Some(Color::Magenta)).set_intense(true);
             }
             Level::Help => {
                 spec.set_fg(Some(Color::Cyan)).set_intense(true);
