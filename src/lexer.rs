@@ -1,4 +1,4 @@
-//! Lexing of Rosa source code into RawTokens.
+//! Lexing of Gatti source code into RawTokens.
 
 use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
@@ -213,12 +213,16 @@ impl<'r> Lexer<'r> {
 
                         let mut comment = String::new();
                         loop {
-                            let window = &self.file.filetext
-                                [usize::from(self.idx)..usize::from(self.idx) + 2];
-                            if window == "*/" {
-                                break;
+                            match self.pop() {
+                                Some('*') if self.peek() == Some('/') => break,
+                                Some(c) => comment.push(c),
+                                None => {
+                                    return PartialResult::new_fail(self.dcx.struct_err(
+                                        "unterminated multiple line comment",
+                                        self.current_span_end(),
+                                    ))
+                                }
                             }
-                            comment.push(self.pop().unwrap());
                         }
 
                         // skip the end of the multiline comment, `*/`
