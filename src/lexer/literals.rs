@@ -11,11 +11,11 @@ use super::tokens::{RawToken, RawTokenType};
 impl<'r> super::Lexer<'r> {
     pub fn lex_int(&mut self, num: String) -> PartialResult<RawToken> {
         match self.make_int(&num, 10) {
-            Ok(lit) => PartialResult::ok(RawToken {
+            Ok(lit) => PartialResult::Good(RawToken {
                 tt: RawTokenType::Int(lit),
                 loc: self.current_span(),
             }),
-            Err(diag) => PartialResult::fail(diag),
+            Err(diag) => PartialResult::new_fail(diag),
         }
     }
 
@@ -85,7 +85,7 @@ impl<'r> super::Lexer<'r> {
                     self.expect(c);
                 }
                 _ => {
-                    return PartialResult::fail(
+                    return PartialResult::new_fail(
                         self.dcx
                             .struct_err("unterminated string literal", self.current_span_end()),
                     )
@@ -98,9 +98,9 @@ impl<'r> super::Lexer<'r> {
             loc: self.current_span(),
         };
         if diags.is_empty() {
-            PartialResult::ok(tok)
+            PartialResult::Good(tok)
         } else {
-            PartialResult::fuzzy(tok, diags)
+            PartialResult::Fuzzy(tok, diags)
         }
     }
 
@@ -194,7 +194,7 @@ impl<'r> super::Lexer<'r> {
                 char = c;
             }
             None => {
-                return PartialResult::fail(self.dcx.struct_err(
+                return PartialResult::new_fail(self.dcx.struct_err(
                     "unexpected end of file",
                     Span::new(self.idx - 1.into(), self.idx),
                 ))
@@ -214,9 +214,9 @@ impl<'r> super::Lexer<'r> {
             loc: self.current_span(),
         };
         if diags.is_empty() {
-            PartialResult::ok(tok)
+            PartialResult::Good(tok)
         } else {
-            PartialResult::fuzzy(tok, diags)
+            PartialResult::Fuzzy(tok, diags)
         }
     }
 }

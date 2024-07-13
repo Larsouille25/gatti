@@ -3,7 +3,7 @@
 use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
 
-use crate::errors::{Diag, DiagCtxt, PartialResult, VerboseResult};
+use crate::errors::{Diag, DiagCtxt, PartialResult};
 use crate::{BytePos, Span};
 
 use self::tokens::{Keyword, Punctuation};
@@ -159,29 +159,27 @@ impl<'r> Lexer<'r> {
         let mut diags: Vec<Diag> = Vec::new();
 
         loop {
-            let res = self.make_token();
-
-            match res.into() {
-                VerboseResult::Ok(tok @ RawToken { tt: EOF, .. }) => {
+            match self.make_token() {
+                PartialResult::Good(tok @ RawToken { tt: EOF, .. }) => {
                     tokens.push(tok);
                     break;
                 }
-                VerboseResult::Ok(tok) => tokens.push(tok),
-                VerboseResult::Fuzzy(tok, dgs) => {
+                PartialResult::Good(tok) => tokens.push(tok),
+                PartialResult::Fuzzy(tok, dgs) => {
                     tokens.push(tok);
                     diags.extend(dgs);
                 }
-                VerboseResult::Fail(dgs) => {
+                PartialResult::Fail(dgs) => {
                     diags.extend(dgs);
-                    return PartialResult::fails(diags);
+                    return PartialResult::Fail(diags);
                 }
             }
         }
 
         if diags.is_empty() {
-            PartialResult::ok(tokens)
+            PartialResult::Good(tokens)
         } else {
-            PartialResult::fuzzy(tokens, diags)
+            PartialResult::Fuzzy(tokens, diags)
         }
     }
 
@@ -241,12 +239,11 @@ impl<'r> Lexer<'r> {
                     let err = self
                         .dcx
                         .struct_err(format!("unknown start of token {c:?}"), self.current_span());
-                    // return Fuzzy::Err(err);
-                    return PartialResult::fail(err);
+                    return PartialResult::new_fail(err);
                 }
                 None => {
                     let len = self.file.length();
-                    return PartialResult::ok(RawToken {
+                    return PartialResult::Good(RawToken {
                         tt: EOF,
                         loc: Span::new(len - 1, len),
                     });
@@ -254,7 +251,7 @@ impl<'r> Lexer<'r> {
             }
         };
 
-        PartialResult::ok(RawToken {
+        PartialResult::Good(RawToken {
             tt,
             loc: self.current_span(),
         })
@@ -290,7 +287,7 @@ impl<'r> Lexer<'r> {
             self.lex_keyword(word)
         };
 
-        PartialResult::ok(RawToken {
+        PartialResult::Good(RawToken {
             tt,
             loc: self.current_span(),
         })

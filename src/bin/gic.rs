@@ -1,7 +1,7 @@
 use std::{env, error::Error, fs::read_to_string, path::PathBuf};
 
 use gatti::{
-    errors::{DiagCtxt, VerboseResult},
+    errors::{DiagCtxt, PartialResult},
     lexer::Lexer,
     VERSION_AND_GIT_HASH,
 };
@@ -52,15 +52,15 @@ FLAGS: (todo)
     let mut lexer = Lexer::new(&path, &buf, &dcx);
     let res = lexer.lex();
 
-    match res.into() {
-        VerboseResult::Ok(toks) => {
+    match res {
+        PartialResult::Good(toks) => {
             dbg!(toks);
         }
-        VerboseResult::Fuzzy(toks, dgs) => {
+        PartialResult::Fuzzy(toks, dgs) => {
             dbg!(toks);
             dcx.emit_diags(dgs)
         }
-        VerboseResult::Fail(dgs) => dcx.emit_diags(dgs),
+        PartialResult::Fail(dgs) => dcx.emit_diags(dgs),
     }
 
     dcx.render_all(&mut s);

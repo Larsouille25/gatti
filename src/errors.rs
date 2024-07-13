@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cmp::max;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 use std::io::{self, Write};
 use std::ops::Range;
 use std::path::Path;
@@ -346,122 +346,117 @@ impl<'r> DiagCtxt<'r> {
 }
 
 /// Partial result, when
-pub struct PartialResult<T, D = Diag> {
-    value: Option<T>,
-    diags: Vec<D>,
+#[derive(Debug, Clone, PartialEq)]
+pub enum PartialResult<T, D = Diag, Ds: IntoIterator<Item = D> = Vec<D>> {
+    Good(T),
+    Fuzzy(T, Ds),
+    Fail(Ds),
 }
 
 impl<T, D> PartialResult<T, D> {
-    /// New successful result
-    pub fn ok(value: T) -> Self {
-        Self {
-            value: Some(value),
-            diags: Vec::new(),
-        }
-    }
-
-    /// New result but encounter problems
-    pub fn fuzzy(value: T, diags: Vec<D>) -> Self {
-        Self {
-            value: Some(value),
-            diags,
-        }
-    }
-
-    /// New failed result with multiple errors
-    pub fn fails(diags: Vec<D>) -> Self {
-        Self { value: None, diags }
-    }
-
     /// New failed result with one error
-    pub fn fail(diag: D) -> Self {
-        Self {
-            value: None,
-            diags: vec![diag],
-        }
-    }
-
-    /// Get the contained value if any
     #[inline]
-    pub fn value(self) -> Option<T> {
-        self.value
-    }
-
-    #[inline]
-    pub fn value_ref(&self) -> Option<&T> {
-        self.value.as_ref()
-    }
-
-    /// Unwraps the value.
-    ///
-    /// # Panic
-    ///
-    /// Panic if there is no value
-    #[inline]
-    pub fn unwrap(&self) -> &T {
-        // we don't check `diags` because if there is no value, it means there
-        // is a diag containing an error and if there is a value, there is no
-        // diag with an error
-        self.value.as_ref().unwrap()
-    }
-
-    /// Get the diags
-    #[inline]
-    pub fn diags(self) -> Vec<D> {
-        self.diags
+    pub fn new_fail(diag: D) -> PartialResult<T, D> {
+        PartialResult::Fail(vec![diag])
     }
 }
 
-impl<T> PartialResult<T, Diag> {
-    /// Did the result is a success?
-    pub fn success(&self) -> bool {
-        for diag in &self.diags {
-            if diag.is_error() {
-                return false;
+impl<T, D, Ds: IntoIterator<Item = D>> PartialResult<T, D, Ds> {
+    /// Unwraps the `Good` variant
+    ///
+    /// # Panic
+    ///
+    /// Panic if it's not the `Good` variant.
+    pub fn unwrap(self) -> T {
+        match self {
+            PartialResult::Good(v) => v,
+            PartialResult::Fuzzy(..) => panic!("call `PartialResult::unwrap` on a `Fuzzy` variant"),
+            PartialResult::Fail(..) => panic!("call `PartialResult::unwrap` on a `Fail` variant"),
+        }
+    }
+
+    /// Unwraps the value in variant
+    ///
+    /// # Panic
+    ///
+    /// Panic if it's `Fail` variant.
+    pub fn unwrap_val(self) -> T {
+        match self {
+            PartialResult::Good(v) | PartialResult::Fuzzy(v, _) => v,
+            PartialResult::Fail(..) => {
+                panic!("call `PartialResult::unwrap_val` on a `Fail` variant")
             }
         }
-        true
+    }
+
+    /// Unwraps the `Fuzzy` variant
+    ///
+    /// # Panic
+    ///
+    /// Panic if it's not the `Fuzzy` variant.
+    pub fn unwrap_fuzzy(self) -> (T, Ds) {
+        match self {
+            PartialResult::Good(..) => {
+                panic!("call `PartialResult::unwrap_fuzzy` on a `Good` variant")
+            }
+            PartialResult::Fuzzy(v, dgs) => (v, dgs),
+            PartialResult::Fail(..) => {
+                panic!("call `PartialResult::unwrap_fuzzy` on a `Fail` variant")
+            }
+        }
+    }
+
+    /// Unwraps the `Fail` variant
+    ///
+    /// # Panic
+    ///
+    /// Panic if it's not the `Fail` variant.
+    pub fn unwrap_fail(self) -> Ds {
+        match self {
+            PartialResult::Good(..) => {
+                panic!("call `PartialResult::unwrap_fail` on a `Good` variant")
+            }
+            PartialResult::Fuzzy(..) => {
+                panic!("call `PartialResult::unwrap_fail` on a `Fuzzy` variant")
+            }
+            PartialResult::Fail(dgs) => dgs,
+        }
+    }
+
+    /// Unwraps the diags in variants
+    ///
+    /// # Panic
+    ///
+    /// Panic if it's the `Good` variant.
+    #[inline]
+    pub fn unwrap_diags(self) -> Ds {
+        match self {
+            PartialResult::Good(..) => {
+                panic!("call `PartialResult::unwrap_diags` on a `Good` variant")
+            }
+            PartialResult::Fuzzy(_, diags) | PartialResult::Fail(diags) => diags,
+        }
+    }
+}
+
+impl<T> PartialResult<T> {
+    /// Did the result is a success?
+    pub fn success(&self) -> bool {
+        match self {
+            PartialResult::Good(..) => true,
+            PartialResult::Fuzzy(_, dgs) | PartialResult::Fail(dgs) => {
+                for diag in dgs {
+                    if diag.is_error() {
+                        return false;
+                    }
+                }
+                true
+            }
+        }
     }
 
     /// Did the result is a failure?
     pub fn failure(&self) -> bool {
         !self.success()
-    }
-}
-
-impl<T: Debug, D: Debug> Debug for PartialResult<T, D> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut res = f.debug_struct("PartialResult");
-        if let Some(val) = &self.value {
-            res.field("value", val);
-        }
-        if !self.diags.is_empty() {
-            res.field("diags", &self.diags);
-        }
-        res.finish()
-    }
-}
-
-pub enum VerboseResult<T, D> {
-    Ok(T),
-    Fuzzy(T, Vec<D>),
-    Fail(Vec<D>),
-}
-
-impl<T, D> From<PartialResult<T, D>> for VerboseResult<T, D> {
-    fn from(value: PartialResult<T, D>) -> Self {
-        if value.diags.is_empty() {
-            if let Some(val) = value.value() {
-                return VerboseResult::Ok(val);
-            } else {
-                unreachable!()
-            }
-        } else {
-            if let Some(val) = value.value {
-                return VerboseResult::Fuzzy(val, value.diags);
-            } else {
-                return VerboseResult::Fail(value.diags);
-            }
-        }
     }
 }
