@@ -1,13 +1,14 @@
-use std::{env, error::Error, fs::read_to_string, path::PathBuf};
+use std::{env, fs::read_to_string, path::PathBuf};
 
 use gatti::{
     errors::{DiagCtxt, PartialResult},
+    interposer::Interposer,
     lexer::Lexer,
     VERSION_AND_GIT_HASH,
 };
 use termcolor::{ColorChoice, StandardStream};
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let help = format!(
         "\
 {} {}
@@ -35,6 +36,7 @@ FLAGS: (todo)
         env!("CARGO_PKG_AUTHORS"),
     );
 
+    // 0. Prepare for compilation, get the path and read the file
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         print!("{}", help);
@@ -44,25 +46,35 @@ FLAGS: (todo)
     println!(" /\\_/\\  Gatti\n( o.o )\n");
 
     let path = PathBuf::from(&args[1]);
-    let buf = read_to_string(&path)?;
+    let buf = read_to_string(&path).expect("Couldn't read the file.");
     let mut s = StandardStream::stdout(ColorChoice::Auto);
 
+    // 1. Create the diagnostic context
     let dcx = DiagCtxt::new(&buf, &path);
 
+    // 2. Lex the source file to raw tokens
     let mut lexer = Lexer::new(&path, &buf, &dcx);
     let res = lexer.lex();
 
-    match res {
-        PartialResult::Good(toks) => {
-            dbg!(toks);
-        }
+    let rtoks = match res {
+        PartialResult::Good(toks) => toks,
         PartialResult::Fuzzy(toks, dgs) => {
-            dbg!(toks);
-            dcx.emit_diags(dgs)
+            dcx.emit_diags(dgs);
+            toks
         }
-        PartialResult::Fail(dgs) => dcx.emit_diags(dgs),
-    }
+        PartialResult::Fail(dgs) => {
+            dcx.emit_diags(dgs);
+            dcx.render_all(&mut s);
+            return;
+        }
+    };
+    dbg!(&rtoks);
 
+    // 3. Interpose the token stream
+    let mut interposer = Interposer::new(rtoks);
+    let token_stream = interposer.run();
+    dbg!(&token_stream);
+
+    // X. Print the diagnostics (should only be warning, and not errors)
     dcx.render_all(&mut s);
-    Ok(())
 }

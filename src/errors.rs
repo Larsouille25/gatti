@@ -220,6 +220,8 @@ impl Diag {
 
 pub type DiagMessage = Cow<'static, str>;
 
+/// The diagnostic context, is used to emit diagnostic in the compilation of
+/// the Gatti program.
 #[derive(Debug)]
 pub struct DiagCtxt<'r> {
     filetext: &'r str,

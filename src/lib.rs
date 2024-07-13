@@ -4,7 +4,9 @@ use std::{
 };
 
 pub mod errors;
+pub mod interposer;
 pub mod lexer;
+pub mod toks;
 
 type BytePosInner = u32;
 

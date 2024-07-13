@@ -6,11 +6,11 @@ use std::{iter::Peekable, path::Path};
 use crate::errors::{Diag, DiagCtxt, PartialResult};
 use crate::{BytePos, Span};
 
-use self::tokens::{Keyword, Punctuation};
 use self::tokens::{
     RawToken,
     RawTokenType::{self, *},
 };
+use crate::toks::{Keyword, Punctuation};
 
 pub mod literals;
 pub mod tokens;
@@ -146,12 +146,6 @@ impl<'r> Lexer<'r> {
             lo: self.prev_idx,
             hi: self.idx - 1.into(),
         }
-    }
-
-    pub fn window(&self, size: usize) -> Option<&str> {
-        self.file
-            .filetext
-            .get(self.prev_idx.0 as usize..self.prev_idx.0 as usize + size)
     }
 
     pub fn lex(&mut self) -> PartialResult<Vec<RawToken>> {
@@ -305,27 +299,6 @@ impl<'r> Lexer<'r> {
         }
     }
 
-    pub fn skip_useless_whitespace(&mut self) {
-        while let Some(c) = self.peek() {
-            match c {
-                ' '
-                | '\u{000B}'..='\u{000D}'
-                | '\u{0085}'
-                | '\u{00A0}'
-                | '\u{1680}'
-                | '\u{2000}'..='\u{200A}'
-                | '\u{2028}'
-                | '\u{2029}'
-                | '\u{202F}'
-                | '\u{205F}'
-                | '\u{3000}' => {
-                    self.pop();
-                }
-                _ => break,
-            }
-        }
-    }
-
     // Try to make punctuation, expect the `Slash` punctuation that is handled
     // somewhere else
     pub fn could_make_punct(&mut self, c: char) -> Option<Punctuation> {
@@ -463,7 +436,7 @@ mod tests {
 
     #[test]
     fn lexer_identifier_and_keywords() {
-        let text = "abc fun  return let mut type true false pub";
+        let text = "abc fun  return let mut type true false pub break continue";
         let dcx = DiagCtxt::new(text, unit_test_path!());
         let mut lexer = Lexer::new(unit_test_path!(), text, &dcx);
 
@@ -493,6 +466,10 @@ mod tests {
             KW(Keyword::False),
             WhiteSpace,
             KW(Keyword::Pub),
+            WhiteSpace,
+            KW(Keyword::Break),
+            WhiteSpace,
+            KW(Keyword::Continue),
             EOF,
         ];
 

@@ -1,0 +1,156 @@
+//! Module responsible for the interposing of the semicolons inside the token stream
+use crate::{
+    lexer::tokens::{RawToken, RawTokenType},
+    toks::{Keyword, Punctuation, Token, TokenType},
+};
+
+/// The interposer is a stage between lexing and parsing. It removes useless
+/// tokens like `WhiteSpace`, `NewLine` and `Comment`.
+///
+/// When the input in broken into tokens, a semicolon is interposed into the
+/// token stream immediatly after a line's final token if that token is:
+///   * an identifier
+///   * an integer, floating-point, char, or string literal
+///   * one of the keywords 'break', 'continue', 'return'
+///   * one of the punctuations ')', ']', '}'
+pub struct Interposer {
+    rawtoks: Vec<RawToken>,
+    idx: usize,
+}
+
+impl Interposer {
+    #[inline]
+    pub fn new(rawtoks: Vec<RawToken>) -> Interposer {
+        Interposer { rawtoks, idx: 0 }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn current(&self) -> Option<RawToken> {
+        self.rawtoks.get(self.idx).cloned()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn next(&self) -> Option<&RawToken> {
+        self.rawtoks.get(self.idx + 1)
+    }
+
+    #[inline]
+    pub fn advance(&mut self) {
+        self.idx += 1;
+    }
+
+    pub fn run(&mut self) -> Vec<Token> {
+        // TODO: Make tests to check if the interposer correctly insert
+        // semicolons where the rule says to interpose one.
+        let mut token_stream = Vec::new();
+
+        loop {
+            let Some(current) = self.current() else { break };
+            let next = self.next();
+
+            if let Some(RawToken {
+                tt: RawTokenType::NewLine,
+                ..
+            }) = next
+            {
+                match current.tt {
+                    RawTokenType::Ident(_)
+                    | RawTokenType::Int(_)
+                    | RawTokenType::Char(_)
+                    | RawTokenType::Str(_)
+                    | RawTokenType::KW(Keyword::Break | Keyword::Continue | Keyword::Return)
+                    | RawTokenType::Punct(
+                        Punctuation::RParen | Punctuation::RBracket | Punctuation::RBrace,
+                    ) => token_stream.push(Token {
+                        tt: TokenType::Punct(Punctuation::Semi),
+                        loc: None,
+                    }),
+                    _ => {}
+                }
+            }
+
+            // convert the raw token to a token or continue if it's not a valid
+            // token
+            // TODO: Make this match expr it's own method and make tests
+            let tok = match current {
+                RawToken {
+                    tt: RawTokenType::KW(keyword),
+                    loc,
+                } => Token {
+                    tt: TokenType::KW(keyword),
+                    loc: Some(loc),
+                },
+                RawToken {
+                    tt: RawTokenType::Punct(punctuation),
+                    loc,
+                } => Token {
+                    tt: TokenType::Punct(punctuation),
+                    loc: Some(loc),
+                },
+                RawToken {
+                    tt: RawTokenType::Int(i),
+                    loc,
+                } => Token {
+                    tt: TokenType::Int(i),
+                    loc: Some(loc),
+                },
+                RawToken {
+                    tt: RawTokenType::Str(s),
+                    loc,
+                } => Token {
+                    tt: TokenType::Str(s),
+                    loc: Some(loc),
+                },
+                RawToken {
+                    tt: RawTokenType::Char(c),
+                    loc,
+                } => Token {
+                    tt: TokenType::Char(c),
+                    loc: Some(loc),
+                },
+                RawToken {
+                    tt: RawTokenType::Ident(id),
+                    loc,
+                } => Token {
+                    tt: TokenType::Ident(id),
+                    loc: Some(loc),
+                },
+                RawToken {
+                    tt: RawTokenType::NewLine,
+                    ..
+                } => {
+                    self.advance();
+                    continue;
+                }
+                RawToken {
+                    tt: RawTokenType::Comment(_),
+                    ..
+                } => {
+                    self.advance();
+                    continue;
+                }
+                RawToken {
+                    tt: RawTokenType::WhiteSpace,
+                    ..
+                } => {
+                    self.advance();
+                    continue;
+                }
+                RawToken {
+                    tt: RawTokenType::EOF,
+                    loc,
+                } => Token {
+                    tt: TokenType::EOF,
+                    loc: Some(loc),
+                },
+            };
+
+            token_stream.push(tok);
+            self.advance();
+        }
+
+        token_stream
+    }
+}
