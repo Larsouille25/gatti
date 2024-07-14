@@ -1,10 +1,13 @@
 //! Gatti's tokens.
 
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use crate::Span;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub tt: TokenType,
     /// Should only be `None` for the inserted semicolons
@@ -201,6 +204,43 @@ impl Display for Keyword {
                 Self::Break => "break",
                 Self::Continue => "continue",
             }
+        )
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct TokenStream {
+    toks: Vec<Token>,
+}
+
+impl TokenStream {
+    pub fn new() -> TokenStream {
+        TokenStream { toks: vec![] }
+    }
+
+    pub fn push(&mut self, tok: Token) {
+        self.toks.push(tok)
+    }
+}
+
+impl Default for TokenStream {
+    fn default() -> Self {
+        TokenStream::new()
+    }
+}
+
+impl Debug for TokenStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.toks.iter()).finish()
+    }
+}
+
+impl Display for TokenStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "{:#?}",
+            self.toks.iter().map(|r| r.tt.clone()).collect::<Vec<_>>()
         )
     }
 }

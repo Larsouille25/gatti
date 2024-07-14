@@ -1,7 +1,7 @@
 //! Module responsible for the interposing of the semicolons inside the token stream
 use crate::{
     lexer::tokens::{RawToken, RawTokenType},
-    toks::{Keyword, Punctuation, Token, TokenType},
+    toks::{Keyword, Punctuation, Token, TokenStream, TokenType},
 };
 
 /// The interposer is a stage between lexing and parsing. It removes useless
@@ -48,10 +48,10 @@ impl Interposer {
         self.idx += 1;
     }
 
-    pub fn run(&mut self) -> Vec<Token> {
+    pub fn run(&mut self) -> TokenStream {
         // TODO: Make tests to check if the interposer correctly insert
         // semicolons where the rule says to interpose one.
-        let mut token_stream = Vec::new();
+        let mut token_stream = TokenStream::new();
 
         loop {
             let Some(current) = self.current() else { break };
