@@ -68,12 +68,13 @@ FLAGS: (todo)
             return;
         }
     };
-    dbg!(&rtoks);
 
     // 3. Interpose the token stream
     let mut interposer = Interposer::new(rtoks);
     let token_stream = interposer.run();
-    dbg!(&token_stream);
+
+    let formated_tokstream: Vec<_> = token_stream.iter().map(|r| r.tt.clone()).collect();
+    dbg!(formated_tokstream);
 
     // X. Print the diagnostics (should only be warning, and not errors)
     dcx.render_all(&mut s);

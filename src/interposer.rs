@@ -7,12 +7,13 @@ use crate::{
 /// The interposer is a stage between lexing and parsing. It removes useless
 /// tokens like `WhiteSpace`, `NewLine` and `Comment`.
 ///
-/// When the input in broken into tokens, a semicolon is interposed into the
-/// token stream immediatly after a line's final token if that token is:
-///   * an identifier
-///   * an integer, floating-point, char, or string literal
-///   * one of the keywords 'break', 'continue', 'return'
-///   * one of the punctuations ')', ']', '}'
+/// 1. When the input in broken into tokens, a semicolon is interposed into the
+///    token stream immediatly after a line's final token if that token is:
+///     * an identifier
+///     * an integer, floating-point, char, or string literal
+///     * one of the keywords 'break', 'continue', 'return'
+///     * one of the punctuations ')', ']', '}'
+/// 2. A semicolon is omited if it will be followed by a `}` or a `)`
 pub struct Interposer {
     rawtoks: Vec<RawToken>,
     idx: usize,
@@ -27,13 +28,19 @@ impl Interposer {
     #[inline]
     #[must_use]
     pub fn current(&self) -> Option<RawToken> {
-        self.rawtoks.get(self.idx).cloned()
+        self.peek_nth(0).cloned()
     }
 
     #[inline]
     #[must_use]
-    pub fn next(&self) -> Option<&RawToken> {
-        self.rawtoks.get(self.idx + 1)
+    pub fn peek_nth(&self, nth: usize) -> Option<&RawToken> {
+        self.rawtoks.get(self.idx + nth)
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn peek(&self) -> Option<&RawToken> {
+        self.peek_nth(1)
     }
 
     #[inline]
@@ -48,14 +55,36 @@ impl Interposer {
 
         loop {
             let Some(current) = self.current() else { break };
-            let next = self.next();
+            let next = self.peek();
+            let two_ahead = self.peek_nth(2);
 
-            if let Some(RawToken {
-                tt: RawTokenType::NewLine,
-                ..
-            }) = next
-            {
-                match current.tt {
+            let Some(tok) = current.clone().unraw() else {
+                self.advance();
+                continue;
+            };
+
+            token_stream.push(tok);
+
+            match (next, two_ahead) {
+                (
+                    Some(RawToken {
+                        tt: RawTokenType::NewLine,
+                        ..
+                    }),
+                    Some(RawToken {
+                        tt: RawTokenType::Punct(Punctuation::RParen | Punctuation::RBrace),
+                        ..
+                    }),
+                ) => {
+                    // Rule n°2
+                }
+                (
+                    Some(RawToken {
+                        tt: RawTokenType::NewLine,
+                        ..
+                    }),
+                    _,
+                ) => match current.tt {
                     RawTokenType::Ident(_)
                     | RawTokenType::Int(_)
                     | RawTokenType::Char(_)
@@ -68,86 +97,10 @@ impl Interposer {
                         loc: None,
                     }),
                     _ => {}
-                }
+                },
+                _ => {}
             }
 
-            // convert the raw token to a token or continue if it's not a valid
-            // token
-            // TODO: Make this match expr it's own method and make tests
-            let tok = match current {
-                RawToken {
-                    tt: RawTokenType::KW(keyword),
-                    loc,
-                } => Token {
-                    tt: TokenType::KW(keyword),
-                    loc: Some(loc),
-                },
-                RawToken {
-                    tt: RawTokenType::Punct(punctuation),
-                    loc,
-                } => Token {
-                    tt: TokenType::Punct(punctuation),
-                    loc: Some(loc),
-                },
-                RawToken {
-                    tt: RawTokenType::Int(i),
-                    loc,
-                } => Token {
-                    tt: TokenType::Int(i),
-                    loc: Some(loc),
-                },
-                RawToken {
-                    tt: RawTokenType::Str(s),
-                    loc,
-                } => Token {
-                    tt: TokenType::Str(s),
-                    loc: Some(loc),
-                },
-                RawToken {
-                    tt: RawTokenType::Char(c),
-                    loc,
-                } => Token {
-                    tt: TokenType::Char(c),
-                    loc: Some(loc),
-                },
-                RawToken {
-                    tt: RawTokenType::Ident(id),
-                    loc,
-                } => Token {
-                    tt: TokenType::Ident(id),
-                    loc: Some(loc),
-                },
-                RawToken {
-                    tt: RawTokenType::NewLine,
-                    ..
-                } => {
-                    self.advance();
-                    continue;
-                }
-                RawToken {
-                    tt: RawTokenType::Comment(_),
-                    ..
-                } => {
-                    self.advance();
-                    continue;
-                }
-                RawToken {
-                    tt: RawTokenType::WhiteSpace,
-                    ..
-                } => {
-                    self.advance();
-                    continue;
-                }
-                RawToken {
-                    tt: RawTokenType::EOF,
-                    loc,
-                } => Token {
-                    tt: TokenType::EOF,
-                    loc: Some(loc),
-                },
-            };
-
-            token_stream.push(tok);
             self.advance();
         }
 

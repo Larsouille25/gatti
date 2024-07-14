@@ -3,7 +3,7 @@
 use std::fmt::Display;
 
 use crate::{
-    toks::{Keyword, Punctuation},
+    toks::{Keyword, Punctuation, Token, TokenType},
     Span,
 };
 
@@ -13,6 +13,83 @@ use crate::{
 pub struct RawToken {
     pub tt: RawTokenType,
     pub loc: Span,
+}
+
+impl RawToken {
+    /// Return the corresponding Token, or None if their is no corresponding
+    /// token, like `WhiteSpace`, `NewLine`, or `Comment`.
+    pub fn unraw(self) -> Option<Token> {
+        // TODO: Make some tests
+        Some(match self {
+            RawToken {
+                tt: RawTokenType::KW(keyword),
+                loc,
+            } => Token {
+                tt: TokenType::KW(keyword),
+                loc: Some(loc),
+            },
+            RawToken {
+                tt: RawTokenType::Punct(punctuation),
+                loc,
+            } => Token {
+                tt: TokenType::Punct(punctuation),
+                loc: Some(loc),
+            },
+            RawToken {
+                tt: RawTokenType::Int(i),
+                loc,
+            } => Token {
+                tt: TokenType::Int(i),
+                loc: Some(loc),
+            },
+            RawToken {
+                tt: RawTokenType::Str(s),
+                loc,
+            } => Token {
+                tt: TokenType::Str(s),
+                loc: Some(loc),
+            },
+            RawToken {
+                tt: RawTokenType::Char(c),
+                loc,
+            } => Token {
+                tt: TokenType::Char(c),
+                loc: Some(loc),
+            },
+            RawToken {
+                tt: RawTokenType::Ident(id),
+                loc,
+            } => Token {
+                tt: TokenType::Ident(id),
+                loc: Some(loc),
+            },
+            RawToken {
+                tt: RawTokenType::NewLine,
+                ..
+            } => {
+                return None;
+            }
+            RawToken {
+                tt: RawTokenType::Comment(_),
+                ..
+            } => {
+                return None;
+            }
+            RawToken {
+                tt: RawTokenType::WhiteSpace,
+                ..
+            } => {
+                return None;
+            }
+            RawToken {
+                tt: RawTokenType::EOF,
+                loc,
+            } => Token {
+                tt: TokenType::EOF,
+                loc: Some(loc),
+            },
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
