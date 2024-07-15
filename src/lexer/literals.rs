@@ -2,7 +2,7 @@
 //! like integer, float, string and char literals
 
 use crate::{
-    errors::{Diag, PartialResult},
+    errors::{Diag, DiagStream, PartialResult},
     Span,
 };
 
@@ -54,7 +54,7 @@ impl<'r> super::Lexer<'r> {
     /// Lexes a string literal
     pub fn lex_str(&mut self) -> PartialResult<RawToken> {
         let mut str = String::new();
-        let mut diags = Vec::new();
+        let mut diags = DiagStream::new();
 
         loop {
             match self.peek() {
@@ -142,7 +142,7 @@ impl<'r> super::Lexer<'r> {
     /// Lexes a char literal
     pub fn lex_char(&mut self) -> PartialResult<RawToken> {
         let char;
-        let mut diags = Vec::new();
+        let mut diags = DiagStream::new();
 
         // We are using the `Default::default()` as a fallback if we encounter
         // an error, that allows us to continue lexing and parsing even when we

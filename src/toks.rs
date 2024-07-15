@@ -2,6 +2,7 @@
 
 use std::{
     fmt::{Debug, Display},
+    slice::SliceIndex,
     str::FromStr,
 };
 
@@ -220,6 +221,10 @@ impl TokenStream {
 
     pub fn push(&mut self, tok: Token) {
         self.toks.push(tok)
+    }
+
+    pub fn get(&self, idx: impl SliceIndex<[Token], Output = Token>) -> Option<&Token> {
+        self.toks.get(idx)
     }
 }
 

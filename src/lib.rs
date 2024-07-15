@@ -6,6 +6,7 @@ use std::{
 pub mod errors;
 pub mod interposer;
 pub mod lexer;
+pub mod parser;
 pub mod toks;
 
 type BytePosInner = u32;
@@ -126,7 +127,7 @@ impl Default for Span {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MultiSpan {
     pub(crate) primary_spans: Vec<Span>,
     // TODO: Implement this part of the MultiSpan type, for it's not one of the

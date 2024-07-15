@@ -4,6 +4,7 @@ use gatti::{
     errors::{DiagCtxt, PartialResult},
     interposer::Interposer,
     lexer::Lexer,
+    parser::Parser,
     VERSION_AND_GIT_HASH,
 };
 use termcolor::{ColorChoice, StandardStream};
@@ -74,6 +75,24 @@ FLAGS: (todo)
     let ts = interposer.run();
 
     println!("TOKEN STREAM = {ts}");
+
+    // 4. Parse the token stream
+    let mut parser = Parser::new(&dcx, ts);
+    let parser_res = parser.begin_parsing();
+
+    let ast = match parser_res {
+        PartialResult::Good(ast) => ast,
+        PartialResult::Fuzzy(ast, dgs) => {
+            dcx.emit_diags(dgs);
+            ast
+        }
+        PartialResult::Fail(dgs) => {
+            dcx.emit_diags(dgs);
+            dcx.render_all(&mut s);
+            return;
+        }
+    };
+    dbg!(&ast);
 
     // X. Print the diagnostics (should only be warning, and not errors)
     dcx.render_all(&mut s);

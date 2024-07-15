@@ -3,7 +3,7 @@
 use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
 
-use crate::errors::{Diag, DiagCtxt, PartialResult};
+use crate::errors::{Diag, DiagCtxt, DiagStream, PartialResult};
 use crate::{BytePos, Span};
 
 use self::tokens::{
@@ -150,7 +150,7 @@ impl<'r> Lexer<'r> {
 
     pub fn lex(&mut self) -> PartialResult<Vec<RawToken>> {
         let mut tokens = Vec::new();
-        let mut diags: Vec<Diag> = Vec::new();
+        let mut diags = DiagStream::new();
 
         loop {
             match self.make_token() {

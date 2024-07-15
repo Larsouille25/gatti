@@ -7,6 +7,7 @@ use std::fmt::Debug;
 use std::io::{self, Write};
 use std::ops::Range;
 use std::path::Path;
+use std::vec::IntoIter;
 
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 
@@ -15,7 +16,7 @@ use style::{SetStyle, Style};
 
 pub mod style;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Level {
     Error,
     Warning,
@@ -59,7 +60,7 @@ impl Level {
 }
 
 /// `Diag` for `Diagnostic`
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Diag {
     level: Level,
     msg: DiagMessage,
@@ -349,21 +350,19 @@ impl<'r> DiagCtxt<'r> {
 
 /// Partial result, when
 #[derive(Debug, Clone, PartialEq)]
-pub enum PartialResult<T, D = Diag, Ds: IntoIterator<Item = D> = Vec<D>> {
+pub enum PartialResult<T> {
     Good(T),
-    Fuzzy(T, Ds),
-    Fail(Ds),
+    Fuzzy(T, DiagStream),
+    Fail(DiagStream),
 }
 
-impl<T, D> PartialResult<T, D> {
+impl<T> PartialResult<T> {
     /// New failed result with one error
     #[inline]
-    pub fn new_fail(diag: D) -> PartialResult<T, D> {
-        PartialResult::Fail(vec![diag])
+    pub fn new_fail(diag: Diag) -> PartialResult<T> {
+        PartialResult::Fail(DiagStream::from([diag]))
     }
-}
 
-impl<T, D, Ds: IntoIterator<Item = D>> PartialResult<T, D, Ds> {
     /// Unwraps the `Good` variant
     ///
     /// # Panic
@@ -396,7 +395,7 @@ impl<T, D, Ds: IntoIterator<Item = D>> PartialResult<T, D, Ds> {
     /// # Panic
     ///
     /// Panic if it's not the `Fuzzy` variant.
-    pub fn unwrap_fuzzy(self) -> (T, Ds) {
+    pub fn unwrap_fuzzy(self) -> (T, DiagStream) {
         match self {
             PartialResult::Good(..) => {
                 panic!("call `PartialResult::unwrap_fuzzy` on a `Good` variant")
@@ -413,7 +412,7 @@ impl<T, D, Ds: IntoIterator<Item = D>> PartialResult<T, D, Ds> {
     /// # Panic
     ///
     /// Panic if it's not the `Fail` variant.
-    pub fn unwrap_fail(self) -> Ds {
+    pub fn unwrap_fail(self) -> DiagStream {
         match self {
             PartialResult::Good(..) => {
                 panic!("call `PartialResult::unwrap_fail` on a `Good` variant")
@@ -431,7 +430,7 @@ impl<T, D, Ds: IntoIterator<Item = D>> PartialResult<T, D, Ds> {
     ///
     /// Panic if it's the `Good` variant.
     #[inline]
-    pub fn unwrap_diags(self) -> Ds {
+    pub fn unwrap_diags(self) -> DiagStream {
         match self {
             PartialResult::Good(..) => {
                 panic!("call `PartialResult::unwrap_diags` on a `Good` variant")
@@ -447,7 +446,7 @@ impl<T> PartialResult<T> {
         match self {
             PartialResult::Good(..) => true,
             PartialResult::Fuzzy(_, dgs) | PartialResult::Fail(dgs) => {
-                for diag in dgs {
+                for diag in AsRef::<Vec<Diag>>::as_ref(dgs) {
                     if diag.is_error() {
                         return false;
                     }
@@ -460,5 +459,57 @@ impl<T> PartialResult<T> {
     /// Did the result is a failure?
     pub fn failure(&self) -> bool {
         !self.success()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct DiagStream {
+    stream: Vec<Diag>,
+}
+
+impl DiagStream {
+    pub fn new() -> DiagStream {
+        DiagStream { stream: vec![] }
+    }
+
+    pub fn push(&mut self, diag: Diag) {
+        self.stream.push(diag)
+    }
+
+    pub fn extend(&mut self, diags: impl IntoIterator<Item = Diag>) {
+        self.stream.extend(diags.into_iter())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stream.is_empty()
+    }
+}
+
+impl IntoIterator for DiagStream {
+    type Item = Diag;
+    type IntoIter = IntoIter<Diag>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.stream.into_iter()
+    }
+}
+
+impl<T> From<T> for DiagStream
+where
+    Vec<Diag>: From<T>,
+{
+    fn from(value: T) -> Self {
+        Self {
+            stream: Vec::from(value),
+        }
+    }
+}
+
+impl<T> AsRef<T> for DiagStream
+where
+    Vec<Diag>: AsRef<T>,
+{
+    fn as_ref(&self) -> &T {
+        self.stream.as_ref()
     }
 }
