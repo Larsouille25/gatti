@@ -348,7 +348,11 @@ impl<'r> DiagCtxt<'r> {
     }
 }
 
-/// Partial result, when
+/// Partial result, when a function can result in a success, or a total failure
+/// with maybe multiple errors, or partially fail, can produce an output but
+/// had troubles on the way to run the function
+// TODO: maybe rename the actual 'Fail' to 'Fails' and create a 'Fail' with
+// only one Diag
 #[derive(Debug, Clone, PartialEq)]
 pub enum PartialResult<T> {
     Good(T),

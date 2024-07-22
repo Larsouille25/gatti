@@ -7,6 +7,7 @@ license = "BSD-2-Clause"
 authors = ["Thibault Vincent <th1bault.vincent@proton.me>"]
 
 [dependencies]
+lazy_static = "1.5.0"
 termcolor = "1.4.1"
 
 [[bin]]

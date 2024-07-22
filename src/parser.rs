@@ -6,14 +6,21 @@ use crate::{
         DiagCtxt, DiagStream,
         PartialResult::{self, *},
     },
-    expect_token,
-    toks::{Keyword, Punctuation, Token, TokenStream, TokenType::*},
+    toks::{
+        Keyword, Punctuation, Token, TokenStream,
+        TokenType::{Punct, EOF},
+    },
     Span,
 };
 
-use self::decl::Declaration;
+use self::{decl::Declaration, precedence::PrecedenceValue};
 
+pub mod block;
 pub mod decl;
+pub mod expr;
+pub mod precedence;
+pub mod stmt;
+pub mod types;
 
 /// The parser for the Gatti Programming language.
 ///
@@ -33,12 +40,19 @@ pub struct Parser<'gi> {
     ts: TokenStream,
     /// Token index of the next Token that will be `pop`ed, in the TokenStream
     ti: usize,
+    /// The current value of the precedence, used to parse binary and unary expressions
+    current_precedence: PrecedenceValue,
 }
 
 impl<'gi> Parser<'gi> {
     /// Creates a new parser. :)
     pub fn new(dcx: &'gi DiagCtxt, ts: TokenStream) -> Parser<'gi> {
-        Parser { dcx, ts, ti: 0 }
+        Parser {
+            dcx,
+            ts,
+            ti: 0,
+            current_precedence: 0,
+        }
     }
 
     /// Pops a tokens of the stream
@@ -69,23 +83,47 @@ impl<'gi> Parser<'gi> {
         let mut diags = DiagStream::new();
 
         loop {
+            // If we reached the EOF, break of the loop
+            if let Some(Token { tt: EOF, .. }) = self.peek_tok() {
+                self.pop();
+                break;
+            }
+            // Parse the declaration
             match Declaration::parse(self) {
                 Good(decl) => decls.push(decl),
                 Fuzzy(decl, dgs) => {
                     decls.push(decl);
-                    self.dcx.emit_diags(dgs);
+                    diags.extend(dgs);
                 }
                 Fail(dgs) => {
                     diags.extend(dgs);
                     break;
                 }
             }
+
+            // Expect a semicolon after the decl
+            if let Some(Token {
+                tt: Punct(Punctuation::Semi),
+                ..
+            }) = self.peek_tok()
+            {
+                self.pop();
+            } else {
+                let end = decls
+                    .last()
+                    .map(|d| d.loc().hi.0.checked_sub(1).unwrap_or(0))
+                    .unwrap_or(0);
+                diags.push(self.dcx.struct_err(
+                    "expected a semicolon after the declaration",
+                    Span::from_inner((end as usize).into(), (end as usize + 1).into()),
+                ))
+            }
         }
 
-        if self.dcx.failed() {
-            Fuzzy(decls, diags)
-        } else {
+        if diags.is_empty() {
             Good(decls)
+        } else {
+            Fuzzy(decls, diags)
         }
     }
 }
@@ -183,15 +221,14 @@ impl Display for AstPart {
 #[macro_export]
 macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* ] else $unexpected:block) => (
-        // TODO: try to use 'try_peek_tok' instead, because it could panic
         match $parser.peek_tok() {
             $(
                 Some($crate::toks::Token { tt: $token, .. }) => {
                     $(
                         $between
                     )?
-                    #[allow(unreachable_code)]
                     // we allow unreacheable code because the $between type may be `!`
+                    #[allow(unreachable_code)]
                     ($result, $parser.pop().unwrap().loc)
                 }
             )*
@@ -199,36 +236,87 @@ macro_rules! expect_token {
         }
     );
 
-    ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* ], $expected:expr) => (
-        $crate::expect_token!($parser => [ $($token, $result $(, in $between)? );* ] else {
-            // TODO: don't use an unwrap here
-            let found = $parser.peek_tok().cloned().unwrap();
-            return PartialResult::new_fail(
-                $parser
+    ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* $( ; )?], $expected:expr) => (
+        match $parser.peek_tok() {
+            $(
+                // we allow unused variable in case of a $between that terminates.
+                #[allow(unused_variables)]
+                Some($crate::toks::Token {
+                    tt: $token,
+                    ..
+                }) => {
+                    $(
+                        $between
+                    )?
+                    // we allow unreacheable code because the $between type may
+                    // be `!` and we can use unwraps and we already know that
+                    // there is a tokens with a location so it is sure we wont
+                    // panic
+                    #[allow(unreachable_code)]
+                    ($result, $parser.pop().unwrap().loc.unwrap())
+                }
+            )*
+            Some($crate::toks::Token { tt, loc: Some(loc) }) => {
+                return $crate::errors::PartialResult::new_fail(
+                    $parser
                     .dcx
-                    .struct_err($crate::parser::expected_tok_msg(found.tt, $expected), found.loc.clone().unwrap())
-            );
-        })
+                    .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
+                )
+            }
+            // TODO: remove those panics and throw errors
+            None => panic!("Tried to expect a token but the end of file has been reached"),
+            _ => panic!("Expected a token but found a semicolon without location"),
+        }
+    );
+
+    (@noloc $parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* $( ; )?], $expected:expr) => (
+        match $parser.peek_tok() {
+            $(
+                // we allow unused variable in case of a $between that terminates.
+                #[allow(unused_variables)]
+                Some($crate::toks::Token {
+                    tt: $token,
+                    ..
+                }) => {
+                    $(
+                        $between
+                    )?
+                    // we allow unreacheable code because the $between type may
+                    // be `!` and we can use unwraps and we already know that
+                    // there is a tokens with a location so it is sure we wont
+                    // panic
+                    #[allow(unreachable_code)]
+                    $result
+                }
+            )*
+            Some($crate::toks::Token { tt, loc: Some(loc) }) => {
+                return $crate::errors::PartialResult::new_fail(
+                    $parser
+                    .dcx
+                    .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
+                )
+            }
+            // TODO: remove those panics and throw errors
+            None => panic!("Tried to expect a token but the end of file has been reached"),
+            _ => panic!("Expected a token but found a semicolon without location"),
+        }
     )
 }
 
 #[macro_export]
 macro_rules! parse {
     ($parser:expr => $node:ty) => {
-        parse!(@fn $parser => <$node as $crate::AstNode>::parse)
+        parse!(@fn $parser => <$node as $crate::parser::AstNode>::parse)
     };
     (@fn $parser:expr => $parsing_fn:expr $(, $arg:expr)*) => (
         match $parsing_fn($parser $(, $arg)*) {
-            Fuzzy::Ok(ast) => ast,
-            Fuzzy::Fuzzy(ast, diags) => {
-                // for some obscur borrow checker reason we cannot use the
-                // `emit_diags` method we are constrained to do it manually
-                for diag in diags {
-                    $parser.dcx().emit_diag(diag);
-                }
+            $crate::errors::PartialResult::Good(ast) => ast,
+            $crate::errors::PartialResult::Fuzzy(ast, dgs) => {
+                $parser.dcx.emit_diags(dgs);
                 ast
             }
-            Fuzzy::Err(err) => return Fuzzy::Err(err),
+            $crate::errors::PartialResult::Fail(err) =>
+                return $crate::errors::PartialResult::Fail(err),
         }
     )
 }

@@ -3,7 +3,7 @@
 use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
 
-use crate::errors::{Diag, DiagCtxt, DiagStream, PartialResult};
+use crate::errors::{DiagCtxt, DiagStream, PartialResult};
 use crate::{BytePos, Span};
 
 use self::tokens::{

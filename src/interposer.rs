@@ -51,6 +51,19 @@ impl Interposer {
     pub fn run(&mut self) -> TokenStream {
         // TODO: Make tests to check if the interposer correctly insert
         // semicolons where the rule says to interpose one.
+
+        // TODO: Allow expression on multiple lines, like
+        //
+        // let x = 12
+        //    * someFun(4)
+        //
+        // let str = "test"
+        //    .iter()
+        //    .filter(..)
+        //    .collect()
+        //
+        // maybe add a new point to the 2nd rule, `or if a punctuation that is
+        // a binary operator or a dot follows the newline`
         let mut token_stream = TokenStream::new();
 
         loop {
