@@ -7,11 +7,12 @@ use crate::{
     Span,
 };
 
-use super::{AstNode, FmtToken, Parser};
+use super::{expr::Expression, stmt::StatementInner, AstNode, FmtToken, Parser};
 
 #[derive(Debug, Clone)]
 pub struct Block {
     pub stmts: Vec<Statement>,
+    pub ret_expr: Option<Expression>,
     pub loc: Span,
 }
 
@@ -47,8 +48,21 @@ impl AstNode for Block {
         }
         let ((), end) = expect_token!(parser => [Punct(Punctuation::RBrace), ()], [FmtToken::Punct(Punctuation::RBrace)]);
 
+        let ret_expr = if let Some(Statement {
+            stmt: StatementInner::ExprStmt(expr),
+            ..
+        }) = stmts.last()
+        {
+            let expr = expr.clone();
+            stmts.pop();
+            Some(expr)
+        } else {
+            None
+        };
+
         Good(Block {
             stmts,
+            ret_expr,
             loc: Span::from_ends(start, end),
         })
     }
