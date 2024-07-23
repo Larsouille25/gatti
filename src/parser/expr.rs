@@ -178,7 +178,6 @@ pub enum ExpressionInner {
     BoolLiteral(bool),
     CharLiteral(char),
     StrLiteral(String),
-    // TODO: implement Path expression, `IDENT`, `IDENT:IDENT`, `IDENT $(: IDENT)+`
     PathExpr(Vec<String>),
 }
 
@@ -194,7 +193,7 @@ impl AstNode for ExpressionInner {
             }) => parse_boollit_expr(parser),
             Some(Token { tt: Char(_), .. }) => parse_charlit_expr(parser),
             Some(Token { tt: Str(_), .. }) => parse_strlit_expr(parser),
-            // Some(Token { tt: Ident(_), .. }) => parse_symbol_expr(parser),
+            Some(Token { tt: Ident(_), .. }) => parse_path_expr(parser),
             Some(Token {
                 tt: Punct(punct), ..
             }) if UnaryOp::from_punct(punct.clone()).is_some_and(|op| op.is_left()) => {
@@ -347,10 +346,26 @@ pub fn parse_strlit_expr(parser: &mut Parser<'_>) -> PartialResult<Expression> {
     })
 }
 
-// pub fn parse_symbol_expr(parser: &mut Parser<'_>) -> PartialResult<Expression> {
-//     let (id, loc) = expect_token!(parser => [Ident(id), id.clone()], [FmtToken::Identifier]);
-//     Good(Expression {
-//         expr: ExpressionInner::SymbolExpr(Symbol::new(id)),
-//         loc,
-//     })
-// }
+pub fn parse_path_expr(parser: &mut Parser<'_>) -> PartialResult<Expression> {
+    let mut id = Vec::new();
+    let (first_id, start) =
+        expect_token!(parser => [Ident(id), id.clone()], [FmtToken::Identifier]);
+    id.push(first_id);
+    let mut end = start.clone();
+
+    while let Some(Token {
+        tt: Punct(Punctuation::Colon),
+        ..
+    }) = parser.peek_tok()
+    {
+        parser.pop();
+        let bit = expect_token!(parser => [Ident(id), id.clone()], [FmtToken::Identifier]);
+        end = bit.1;
+        id.push(bit.0);
+    }
+
+    Good(Expression {
+        expr: ExpressionInner::PathExpr(id),
+        loc: Span::from_ends(start, end),
+    })
+}
