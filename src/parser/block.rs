@@ -34,13 +34,13 @@ impl AstNode for Block {
 
             let stmt = parse!(parser => Statement);
             stmts.push(stmt);
-            expect_token!(parser
+            expect_token!(@noloc parser
                 => [
-                    Punct(Punctuation::Colon), ();
+                    Punct(Punctuation::SemiColon), ();
                     Punct(Punctuation::RBrace), (), in break;
                 ],
                 [
-                    FmtToken::Punct(Punctuation::Colon),
+                    FmtToken::Punct(Punctuation::SemiColon),
                     FmtToken::Punct(Punctuation::RBrace),
                 ]
             );

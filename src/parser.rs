@@ -6,6 +6,7 @@ use crate::{
         DiagCtxt, DiagStream,
         PartialResult::{self, *},
     },
+    expect_token,
     toks::{
         Keyword, Punctuation, Token, TokenStream,
         TokenType::{Punct, EOF},
@@ -102,22 +103,7 @@ impl<'gi> Parser<'gi> {
             }
 
             // Expect a semicolon after the decl
-            if let Some(Token {
-                tt: Punct(Punctuation::Semi),
-                ..
-            }) = self.peek_tok()
-            {
-                self.pop();
-            } else {
-                let end = decls
-                    .last()
-                    .map(|d| d.loc().hi.0.checked_sub(1).unwrap_or(0))
-                    .unwrap_or(0);
-                diags.push(self.dcx.struct_err(
-                    "expected a semicolon after the declaration",
-                    Span::from_inner((end as usize).into(), (end as usize + 1).into()),
-                ))
-            }
+            expect_token!(@noloc self => [Punct(Punctuation::SemiColon), ()], [FmtToken::Punct(Punctuation::SemiColon)]);
         }
 
         if diags.is_empty() {
@@ -282,18 +268,21 @@ macro_rules! expect_token {
                         $between
                     )?
                     // we allow unreacheable code because the $between type may
-                    // be `!` and we can use unwraps and we already know that
-                    // there is a tokens with a location so it is sure we wont
-                    // panic
+                    // be of type `!` and we can use unwraps and we already
+                    // know that there is a tokens with a location so it is
+                    // sure we wont panic
                     #[allow(unreachable_code)]
-                    $result
+                    {
+                        $parser.pop();
+                        $result
+                    }
                 }
             )*
             Some($crate::toks::Token { tt, loc: Some(loc) }) => {
                 return $crate::errors::PartialResult::new_fail(
                     $parser
-                    .dcx
-                    .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
+                        .dcx
+                        .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
                 )
             }
             // TODO: remove those panics and throw errors

@@ -312,7 +312,7 @@ impl<'r> Lexer<'r> {
             '{' => LBrace,
             '}' => RBrace,
             ':' => Colon,
-            ';' => Semi,
+            ';' => SemiColon,
             ',' => Comma,
             '@' => At,
             '*' => Asterisk,

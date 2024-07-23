@@ -66,7 +66,7 @@ pub enum Punctuation {
 
     // Punctuation:
     Colon,
-    Semi,
+    SemiColon,
     Comma,
     At,
     /// '->'
@@ -96,8 +96,8 @@ impl Punctuation {
     pub fn size(&self) -> usize {
         use Punctuation::*;
         match self {
-            RParen | LParen | RBracket | LBracket | RBrace | LBrace | Colon | Semi | Comma | At
-            | Asterisk | Caret | Dot | Equal | Exclamationmark | LArrow | Minus | Percent
+            RParen | LParen | RBracket | LBracket | RBrace | LBrace | Colon | SemiColon | Comma
+            | At | Asterisk | Caret | Dot | Equal | Exclamationmark | LArrow | Minus | Percent
             | Plus | RArrow | Slash => 1,
             ThinRArrow | Equal2 | ExclamationmarkEqual | LArrow2 | LArrowEqual | RArrow2
             | RArrowEqual => 2,
@@ -121,7 +121,7 @@ impl Display for Punctuation {
                 Self::LBrace => "}",
 
                 Self::Colon => ":",
-                Self::Semi => ";",
+                Self::SemiColon => ";",
                 Self::Comma => ",",
                 Self::At => "@",
                 Self::ThinRArrow => "->",

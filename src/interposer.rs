@@ -106,7 +106,7 @@ impl Interposer {
                     | RawTokenType::Punct(
                         Punctuation::RParen | Punctuation::RBracket | Punctuation::RBrace,
                     ) => token_stream.push(Token {
-                        tt: TokenType::Punct(Punctuation::Semi),
+                        tt: TokenType::Punct(Punctuation::SemiColon),
                         loc: None,
                     }),
                     _ => {}
