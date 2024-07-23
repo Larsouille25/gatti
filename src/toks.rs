@@ -99,6 +99,7 @@ impl Punctuation {
             RParen | LParen | RBracket | LBracket | RBrace | LBrace | Colon | SemiColon | Comma
             | At | Asterisk | Caret | Dot | Equal | Exclamationmark | LArrow | Minus | Percent
             | Plus | RArrow | Slash => 1,
+
             ThinRArrow | Equal2 | ExclamationmarkEqual | LArrow2 | LArrowEqual | RArrow2
             | RArrowEqual => 2,
         }
@@ -111,14 +112,14 @@ impl Display for Punctuation {
             f,
             "{}",
             match self {
-                Self::RParen => "(",
-                Self::LParen => ")",
+                Self::LParen => "(",
+                Self::RParen => ")",
 
-                Self::RBracket => "[",
-                Self::LBracket => "]",
+                Self::LBracket => "[",
+                Self::RBracket => "]",
 
-                Self::RBrace => "{",
-                Self::LBrace => "}",
+                Self::LBrace => "{",
+                Self::RBrace => "}",
 
                 Self::Colon => ":",
                 Self::SemiColon => ";",
