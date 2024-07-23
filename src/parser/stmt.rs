@@ -13,8 +13,8 @@ pub enum StatementInner {
 
 #[derive(Debug, Clone)]
 pub struct Statement {
-    stmt: StatementInner,
-    loc: Span,
+    pub stmt: StatementInner,
+    pub loc: Span,
 }
 
 derive_loc!(Statement);
