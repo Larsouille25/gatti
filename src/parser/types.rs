@@ -27,7 +27,6 @@ pub enum TypeInner {
     Char,
     // String,
 
-    // TODO: implement parsing for function pointers
     // e.g: `fun (int, bool) -> int` is a fn ptr
     // like `fun ()` is also a fn ptr
     FnPtr {
@@ -68,24 +67,23 @@ impl AstNode for Type {
     type Output = Self;
 
     fn parse(parser: &mut Parser<'_>) -> PartialResult<Self::Output> {
-        // TODO: replace the unwrap
-        match parser.peek_tok().unwrap() {
-            Token {
+        match parser.peek_tok() {
+            Some(Token {
                 tt: Ident(name), ..
-            } if TypeInner::is_primitive_type(name) => parse_primitive_type(parser),
-            Token {
+            }) if TypeInner::is_primitive_type(name) => parse_primitive_type(parser),
+            Some(Token {
                 tt: KW(Keyword::Fun),
                 ..
-            } => parse_fn_ptr_type(parser),
-            t => {
+            }) => parse_fn_ptr_type(parser),
+            Some(t) => {
                 let tok = t.clone();
                 PartialResult::new_fail(
                     parser
                         .dcx
-                        // TODO: replace the unwrap here
-                        .struct_err(expected_tok_msg(tok.tt, [AstPart::Type]), tok.loc.unwrap()),
+                        .struct_err(expected_tok_msg(tok.tt, [AstPart::Type]), tok.loc),
                 )
             }
+            None => parser.reached_eof_diag(),
         }
     }
 }
@@ -121,7 +119,6 @@ pub fn parse_primitive_type(parser: &mut Parser<'_>) -> PartialResult<Type> {
 }
 
 pub fn parse_fn_ptr_type(parser: &mut Parser<'_>) -> PartialResult<Type> {
-    // TODO: better error handling
     let ((), start) = expect_token!(parser => [KW(Keyword::Fun), ()], [FmtToken::KW(Keyword::Fun)]);
 
     expect_token!(parser => [Punct(Punctuation::LParen), ()], [FmtToken::Punct(Punctuation::LParen)]);

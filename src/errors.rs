@@ -253,12 +253,32 @@ impl<'r> DiagCtxt<'r> {
         }
     }
 
-    pub fn struct_err(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag {
-        self.struct_spans_err(msg, vec![primary_span])
+    pub fn struct_err(
+        &'r self,
+        msg: impl Into<DiagMessage>,
+        primary_span: impl Into<Option<Span>>,
+    ) -> Diag {
+        let span = if let Some(sp) = primary_span.into() {
+            vec![sp]
+        } else {
+            vec![]
+        };
+
+        self.struct_spans_err(msg, span)
     }
 
-    pub fn struct_warn(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag {
-        self.struct_spans_warn(msg, vec![primary_span])
+    pub fn struct_warn(
+        &'r self,
+        msg: impl Into<DiagMessage>,
+        primary_span: impl Into<Option<Span>>,
+    ) -> Diag {
+        let span = if let Some(sp) = primary_span.into() {
+            vec![sp]
+        } else {
+            vec![]
+        };
+
+        self.struct_spans_warn(msg, span)
     }
 
     pub fn struct_spans_err(

@@ -66,6 +66,9 @@ impl Interposer {
         // a binary operator or a dot follows the newline`
         let mut token_stream = TokenStream::new();
 
+        // FIXME: instead of strictly take the next two raw tokens, take the
+        // next two raw tokens that are not whitespace. because in some cases
+        // it might break the rules
         loop {
             let Some(current) = self.current() else { break };
             let next = self.peek();

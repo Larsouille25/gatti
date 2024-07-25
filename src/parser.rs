@@ -79,6 +79,9 @@ impl<'gi> Parser<'gi> {
         self.nth_tok(0)
     }
 
+    /// Begin the parsing of the [`Token`]s.
+    ///
+    /// [`Token`]: crate::toks::Token
     pub fn begin_parsing(&mut self) -> PartialResult<Vec<Declaration>> {
         let mut decls = Vec::new();
         let mut diags = DiagStream::new();
@@ -112,6 +115,36 @@ impl<'gi> Parser<'gi> {
             Fuzzy(decls, diags)
         }
     }
+
+    /// A diagnostic when we already poped the EOF token but we are trying to
+    /// get another token
+    ///
+    /// => Use when `pop` | `peek_tok` return None
+    pub fn reached_eof_diag<T>(&self) -> PartialResult<T> {
+        // TODO: i don't know if we should give it a location
+        PartialResult::new_fail(self.dcx.struct_err(
+            "unexpected parsing when end of file was already reached",
+            None,
+        ))
+    }
+
+    /// While expecting a token, we found a semicolon interposed without a
+    /// location.
+    ///
+    /// # Note
+    ///
+    // TODO:
+    /// I don't know if it's the most appropriate approach to this, because if
+    /// we found one where we didn't expected one, we should probably panic
+    /// because the interposer should not have interposed this semicolon.
+    pub fn semicolon_noloc_diag<T>(&self) -> PartialResult<T> {
+        // TODO: give it a location between the last parsed token and the next
+        // token, or None if there is no next token
+        PartialResult::new_fail(
+            self.dcx
+                .struct_err("unexpected semicolon from the interposer", None),
+        )
+    }
 }
 
 pub trait AstNode: fmt::Debug {
@@ -129,7 +162,7 @@ macro_rules! derive_loc {
     ($t:ty $(where $( $tt:tt )* )? ) => {
         impl $( $( $tt )* )? $crate::parser::Location for $t {
             #[inline]
-            fn loc(&self) -> crate::Span {
+            fn loc(&self) -> $crate::Span {
                 self.loc.clone()
             }
         }
@@ -250,8 +283,8 @@ macro_rules! expect_token {
                 )
             }
             // TODO: remove those panics and throw errors
-            None => panic!("Tried to expect a token but the end of file has been reached"),
-            _ => panic!("Expected a token but found a semicolon without location"),
+            None => return $parser.reached_eof_diag(),
+            _ => return $parser.semicolon_noloc_diag(),
         }
     );
 

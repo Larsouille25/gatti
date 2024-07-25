@@ -55,26 +55,21 @@ impl AstNode for Declaration {
     type Output = Declaration;
 
     fn parse(parser: &mut Parser<'_>) -> PartialResult<Self::Output> {
-        // TODO: remove this `unwrap`
         // TODO: add support for parsing visibilities
-        match parser.peek_tok().unwrap() {
-            Token {
+        match parser.peek_tok() {
+            Some(Token {
                 tt: KW(Keyword::Fun),
                 ..
-            } => parse_fun_decl(parser),
-            t => {
+            }) => parse_fun_decl(parser),
+            Some(t) => {
                 let tok = t.clone();
                 PartialResult::new_fail(
                     parser
                         .dcx
-                        // TODO: replace the unwrap here
-                        .struct_err(
-                            expected_tok_msg(tok.tt, [AstPart::Declaration]),
-                            // TODO: Change this `unwrap_or` to something else
-                            tok.loc.unwrap_or(Span::ZERO),
-                        ),
+                        .struct_err(expected_tok_msg(tok.tt, [AstPart::Declaration]), tok.loc),
                 )
             }
+            None => parser.reached_eof_diag(),
         }
     }
 }

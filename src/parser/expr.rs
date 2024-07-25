@@ -201,13 +201,13 @@ impl AstNode for ExpressionInner {
             }
             Some(t) => {
                 let t = t.clone();
-                PartialResult::new_fail(parser.dcx.struct_err(
-                    expected_tok_msg(t.tt, [AstPart::Expression]),
-                    // TODO: remove the unwrap
-                    t.loc.unwrap(),
-                ))
+                PartialResult::new_fail(
+                    parser
+                        .dcx
+                        .struct_err(expected_tok_msg(t.tt, [AstPart::Expression]), t.loc),
+                )
             }
-            None => todo!(),
+            None => parser.reached_eof_diag(),
         }
     }
 }
