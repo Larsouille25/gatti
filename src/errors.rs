@@ -70,7 +70,10 @@ pub struct Diag {
 impl Diag {
     pub fn format(&self, dcx: &DiagCtxt, s: &mut StandardStream) -> io::Result<()> {
         let prim_pos = self.primary_line_pos(dcx);
-        let LineCol { line, col } = prim_pos[0].start;
+        let Some(LineCol { line, col }) = prim_pos.first().map(|lc| lc.start) else {
+            // TODO: implement diags without location
+            todo!("add support for diags without a location");
+        };
 
         s.set_style(Style::PathLineCol, &self.level)?;
         write!(s, "{}:{}:{}: ", dcx.filepath.display(), line, col)?;
@@ -501,7 +504,7 @@ impl DiagStream {
     }
 
     pub fn extend(&mut self, diags: impl IntoIterator<Item = Diag>) {
-        self.stream.extend(diags.into_iter())
+        self.stream.extend(diags)
     }
 
     pub fn is_empty(&self) -> bool {

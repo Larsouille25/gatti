@@ -151,7 +151,7 @@ impl MultiSpan {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct LineCol {
     /// Line number, starting from one.
     pub line: u32,

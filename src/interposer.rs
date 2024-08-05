@@ -27,25 +27,55 @@ impl Interposer {
 
     #[inline]
     #[must_use]
-    pub fn current(&self) -> Option<RawToken> {
+    fn current(&self) -> Option<RawToken> {
         self.peek_nth(0).cloned()
     }
 
     #[inline]
     #[must_use]
-    pub fn peek_nth(&self, nth: usize) -> Option<&RawToken> {
+    fn peek_nth(&self, nth: usize) -> Option<&RawToken> {
         self.rawtoks.get(self.idx + nth)
     }
 
     #[inline]
-    #[must_use]
-    pub fn peek(&self) -> Option<&RawToken> {
-        self.peek_nth(1)
+    fn advance(&mut self) {
+        self.idx += 1;
     }
 
-    #[inline]
-    pub fn advance(&mut self) {
-        self.idx += 1;
+    /// Returns the nth raw token that is not a comment or a whitespace
+    ///
+    /// # Note
+    ///
+    /// The index ignores the comments and whitespace
+    fn peek_nth_non_useless(&self, idx: usize) -> Option<&RawToken> {
+        let mut next_tok;
+        let mut new_idx = self.idx;
+        let mut current_peek = 0;
+
+        loop {
+            match self.rawtoks.get(new_idx) {
+                Some(RawToken {
+                    tt: RawTokenType::Comment(_) | RawTokenType::WhiteSpace,
+                    ..
+                }) => {
+                    new_idx += 1;
+                    continue;
+                }
+                Some(t) => {
+                    next_tok = t;
+                }
+                None => return None,
+            }
+
+            if current_peek == idx {
+                break;
+            } else {
+                current_peek += 1;
+                new_idx += 1;
+                continue;
+            }
+        }
+        Some(next_tok)
     }
 
     pub fn run(&mut self) -> TokenStream {
@@ -66,13 +96,10 @@ impl Interposer {
         // a binary operator or a dot follows the newline`
         let mut token_stream = TokenStream::new();
 
-        // FIXME: instead of strictly take the next two raw tokens, take the
-        // next two raw tokens that are not whitespace. because in some cases
-        // it might break the rules
         loop {
             let Some(current) = self.current() else { break };
-            let next = self.peek();
-            let two_ahead = self.peek_nth(2);
+            let next = self.peek_nth_non_useless(1);
+            let two_ahead = self.peek_nth_non_useless(2);
 
             let Some(tok) = current.clone().unraw() else {
                 self.advance();
