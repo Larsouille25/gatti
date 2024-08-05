@@ -23,6 +23,7 @@ impl AstNode for Statement {
     type Output = Self;
 
     fn parse(parser: &mut Parser<'_>) -> PartialResult<Self::Output> {
+        // TODO: add support for variable declarations
         match parser.peek_tok() {
             _ => parse_expr_stmt(parser),
         }

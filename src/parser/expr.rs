@@ -79,7 +79,7 @@ impl BinaryOp {
             Punct::LArrowEqual => BOp::CompLTE,
             Punct::RArrowEqual => BOp::CompGTE,
             Punct::Equal2 => BOp::CompEq,
-            Punct::ExclamationmarkEqual => BOp::CompNe,
+            Punct::BangEqual => BOp::CompNe,
             _ => return None,
         })
     }
@@ -105,7 +105,7 @@ impl UnaryOp {
         use UnaryOp as UOp;
         Some(match punct {
             Punct::Minus => UOp::Negation,
-            Punct::Exclamationmark => UOp::Not,
+            Punct::Bang => UOp::Not,
             _ => return None,
         })
     }

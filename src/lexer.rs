@@ -323,8 +323,8 @@ impl<'r> Lexer<'r> {
 
             // ambigious
             '!' => match self.peek() {
-                Some('=') => ExclamationmarkEqual,
-                _ => Exclamationmark,
+                Some('=') => BangEqual,
+                _ => Bang,
             },
             '=' => match self.peek() {
                 Some('=') => Equal2,
@@ -341,7 +341,7 @@ impl<'r> Lexer<'r> {
                 _ => RArrow,
             },
             '-' => match self.peek() {
-                Some('>') => ThinRArrow,
+                Some('>') => Arrow,
                 _ => Minus,
             },
 

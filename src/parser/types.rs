@@ -131,11 +131,11 @@ pub fn parse_fn_ptr_type(parser: &mut Parser<'_>) -> PartialResult<Type> {
     let ((), paren_end) = expect_token!(parser => [Punct(Punctuation::RParen), ()], [FmtToken::Punct(Punctuation::LParen)]);
 
     let (end, ret) = if let Some(Token {
-        tt: Punct(Punctuation::ThinRArrow),
+        tt: Punct(Punctuation::Arrow),
         ..
     }) = parser.peek_tok()
     {
-        expect_token!(parser => [Punct(Punctuation::ThinRArrow), ()], [FmtToken::Punct(Punctuation::ThinRArrow)]);
+        expect_token!(parser => [Punct(Punctuation::Arrow), ()], [FmtToken::Punct(Punctuation::Arrow)]);
 
         let ret = Box::new(parse!(parser => Type));
 

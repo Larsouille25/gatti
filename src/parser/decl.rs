@@ -130,11 +130,11 @@ impl AstNode for Prototype {
 
         // Return type parsing
         let (end, ret) = if let Some(Token {
-            tt: Punct(Punctuation::ThinRArrow),
+            tt: Punct(Punctuation::Arrow),
             ..
         }) = parser.peek_tok()
         {
-            expect_token!(parser => [Punct(Punctuation::ThinRArrow), ()], [FmtToken::Punct(Punctuation::ThinRArrow)]);
+            expect_token!(parser => [Punct(Punctuation::Arrow), ()], [FmtToken::Punct(Punctuation::Arrow)]);
 
             let ret = parse!(parser => Type);
 

@@ -55,40 +55,67 @@ impl Display for TokenType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Punctuation {
     // Delimiters:
-    RParen,
+    /// '('
     LParen,
+    /// ')'
+    RParen,
 
-    RBracket,
+    /// '['
     LBracket,
+    /// ']'
+    RBracket,
 
-    RBrace,
+    /// '{'
     LBrace,
+    /// '}'
+    RBrace,
 
     // Punctuation:
+    /// ':'
     Colon,
+    /// ';'
     SemiColon,
+    /// ','
     Comma,
+    /// '@'
     At,
     /// '->'
-    ThinRArrow,
+    Arrow,
 
     // Operators:
+    /// '*'
     Asterisk,
+    /// '^'
     Caret,
+    /// '.'
     Dot,
+    /// '='
     Equal,
+    /// '=='
     Equal2,
-    Exclamationmark,
-    ExclamationmarkEqual,
+    /// '!'
+    Bang,
+    /// '!='
+    BangEqual,
+    /// '<'
     LArrow,
+    /// '<<'
     LArrow2,
+    /// '<='
     LArrowEqual,
+    /// '-'
     Minus,
+    /// '%'
     Percent,
+    /// '+'
     Plus,
+    /// '>'
     RArrow,
+    /// '>>'
     RArrow2,
+    /// '>='
     RArrowEqual,
+    /// '/'
     Slash,
 }
 
@@ -97,11 +124,10 @@ impl Punctuation {
         use Punctuation::*;
         match self {
             RParen | LParen | RBracket | LBracket | RBrace | LBrace | Colon | SemiColon | Comma
-            | At | Asterisk | Caret | Dot | Equal | Exclamationmark | LArrow | Minus | Percent
-            | Plus | RArrow | Slash => 1,
+            | At | Asterisk | Caret | Dot | Equal | Bang | LArrow | Minus | Percent | Plus
+            | RArrow | Slash => 1,
 
-            ThinRArrow | Equal2 | ExclamationmarkEqual | LArrow2 | LArrowEqual | RArrow2
-            | RArrowEqual => 2,
+            Arrow | Equal2 | BangEqual | LArrow2 | LArrowEqual | RArrow2 | RArrowEqual => 2,
         }
     }
 }
@@ -125,15 +151,15 @@ impl Display for Punctuation {
                 Self::SemiColon => ";",
                 Self::Comma => ",",
                 Self::At => "@",
-                Self::ThinRArrow => "->",
+                Self::Arrow => "->",
 
                 Self::Asterisk => "*",
                 Self::Caret => "^",
                 Self::Dot => ".",
                 Self::Equal => "=",
                 Self::Equal2 => "==",
-                Self::Exclamationmark => "!",
-                Self::ExclamationmarkEqual => "!=",
+                Self::Bang => "!",
+                Self::BangEqual => "!=",
                 Self::LArrow => "<",
                 Self::LArrow2 => "<<",
                 Self::LArrowEqual => "<=",
