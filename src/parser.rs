@@ -282,7 +282,6 @@ macro_rules! expect_token {
                     .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
                 )
             }
-            // TODO: remove those panics and throw errors
             None => return $parser.reached_eof_diag(),
             _ => return $parser.semicolon_noloc_diag(),
         }
@@ -318,9 +317,8 @@ macro_rules! expect_token {
                         .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
                 )
             }
-            // TODO: remove those panics and throw errors
-            None => panic!("Tried to expect a token but the end of file has been reached"),
-            _ => panic!("Expected a token but found a semicolon without location"),
+            None => return $parser.reached_eof_diag(),
+            _ => return $parser.semicolon_noloc_diag(),
         }
     )
 }
