@@ -9,17 +9,16 @@ use crate::{
     expect_token,
     toks::{
         Keyword, Punctuation, Token, TokenStream,
-        TokenType::{Punct, EOF},
+        TokenType::{self, Punct, EOF},
     },
     Span,
 };
 
-use self::{decl::Declaration, precedence::PrecedenceValue};
+use self::decl::Declaration;
 
 pub mod block;
 pub mod decl;
 pub mod expr;
-pub mod precedence;
 pub mod stmt;
 pub mod types;
 
@@ -27,7 +26,7 @@ pub mod types;
 ///
 /// It is implemented with a [Recursive Descent Parser][rdp] for everything
 /// expect the parsing for Binary Expression that uses a [Operator-precedence
-/// parser][opp].
+/// parser][opp] that is kinda like a Pratt parser.
 ///
 /// [rdp]: https://en.wikipedia.org/wiki/Recursive_descent_parser
 /// [opp]: https://en.wikipedia.org/wiki/Operator-precedence_parser
@@ -41,19 +40,12 @@ pub struct Parser<'gi> {
     ts: TokenStream,
     /// Token index of the next Token that will be `pop`ed, in the TokenStream
     ti: usize,
-    /// The current value of the precedence, used to parse binary and unary expressions
-    current_precedence: PrecedenceValue,
 }
 
 impl<'gi> Parser<'gi> {
     /// Creates a new parser. :)
     pub fn new(dcx: &'gi DiagCtxt, ts: TokenStream) -> Parser<'gi> {
-        Parser {
-            dcx,
-            ts,
-            ti: 0,
-            current_precedence: 0,
-        }
+        Parser { dcx, ts, ti: 0 }
     }
 
     /// Pops a tokens of the stream
@@ -77,6 +69,12 @@ impl<'gi> Parser<'gi> {
     #[inline]
     pub fn peek_tok(&self) -> Option<&Token> {
         self.nth_tok(0)
+    }
+
+    /// Get the token that will be popped if you call `pop` after this call.
+    #[inline]
+    pub fn peek_tt(&self) -> Option<&TokenType> {
+        self.peek_tok().map(|t| &t.tt)
     }
 
     /// Begin the parsing of the [`Token`]s.
@@ -204,13 +202,16 @@ impl Display for FmtToken {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum AstPart {
     Expression,
     Statement,
     FunctionDef,
     Declaration,
     ImportDecl,
-    UnaryOperator,
+    PreUnaryOperator,
+    PostUnaryOperator,
+    BinaryOperator,
     Type,
 }
 
@@ -222,11 +223,15 @@ impl Display for AstPart {
             Self::FunctionDef => write!(f, "function definition"),
             Self::Declaration => write!(f, "declaration"),
             Self::ImportDecl => write!(f, "import declaration"),
-            Self::UnaryOperator => write!(f, "unary operator"),
+            Self::PreUnaryOperator => write!(f, "pre unary operator"),
+            Self::PostUnaryOperator => write!(f, "post unary operator"),
+            Self::BinaryOperator => write!(f, "binary operator"),
             Self::Type => write!(f, "type"),
         }
     }
 }
+
+// TODO: replace `expect_token` and `parse` macros with methods on `Parser`.
 
 /// This macro is used to expect a token from the parser, one of the most
 /// useful macro in the parser

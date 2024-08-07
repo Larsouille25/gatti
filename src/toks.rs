@@ -17,6 +17,7 @@ pub struct Token {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
+    // !!! If you add a token used in expression ensure to add it in [`Precedence::from`]
     /// Keywords
     KW(Keyword),
 

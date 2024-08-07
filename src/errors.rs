@@ -387,6 +387,8 @@ impl<T> PartialResult<T> {
     /// New failed result with one error
     #[inline]
     pub fn new_fail(diag: Diag) -> PartialResult<T> {
+        // TODO: replace this function with a variant of PartialResult that
+        // takes only one diag.
         PartialResult::Fail(DiagStream::from([diag]))
     }
 
