@@ -124,11 +124,13 @@ pub fn parse_fn_ptr_type(parser: &mut Parser<'_>) -> PartialResult<Type> {
     expect_token!(parser => [Punct(Punctuation::LParen), ()], [FmtToken::Punct(Punctuation::LParen)]);
     let mut args = Vec::new();
     loop {
-        let arg = parse!(parser => Type);
-        args.push(arg);
+        if let Some(Punct(Punctuation::RParen)) = parser.peek_tt() {
+            break;
+        }
+        args.push(parse!(parser => Type));
         expect_token!(parser => [Punct(Punctuation::Colon), (); Punct(Punctuation::RParen), (), in break], [FmtToken::Punct(Punctuation::Colon), FmtToken::Punct(Punctuation::LParen)]);
     }
-    let ((), paren_end) = expect_token!(parser => [Punct(Punctuation::RParen), ()], [FmtToken::Punct(Punctuation::LParen)]);
+    let ((), paren_end) = expect_token!(parser => [Punct(Punctuation::RParen), ()], [FmtToken::Punct(Punctuation::RParen)]);
 
     let (end, ret) = if let Some(Token {
         tt: Punct(Punctuation::Arrow),
