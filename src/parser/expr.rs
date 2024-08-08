@@ -131,6 +131,7 @@ impl From<TokenType> for Precedence {
             Punct(Punctuation::Asterisk | Punctuation::Slash | Punctuation::Percent) => {
                 Precedence::Factor
             }
+            Punct(Punctuation::LParen) => Precedence::Call,
             _ => Precedence::__None__,
         }
     }
@@ -185,6 +186,9 @@ pub fn parse_expr_precedence(
         lhs = match parser.peek_tt() {
             // we match a token here, because, in the future there will be
             // binary operators that are Keyword, like Logical And.
+            Some(Punct(Punctuation::LParen)) => {
+                parse!(@fn parser => parse_call_expr, Box::new(lhs))
+            }
             Some(maybe_bin_op) if BinaryOp::from_tt(maybe_bin_op.clone()).is_some() => {
                 parse!(@fn parser => parse_binary_expr, lhs)
             }
@@ -212,6 +216,10 @@ pub enum ExpressionInner {
         rhs: Box<Expression>,
     },
     Path(Vec<String>),
+    Call {
+        callee: Box<Expression>,
+        args: Vec<Expression>,
+    },
 }
 
 impl AstNode for Expression {
@@ -466,6 +474,32 @@ pub fn parse_path_expr(parser: &mut Parser<'_>) -> PartialResult<Expression> {
 
     Good(Expression {
         expr: ExpressionInner::Path(id),
+        loc: Span::from_ends(start, end),
+    })
+}
+
+/// Parse call expression, `expression "(" expression? ( , expression )* ")"`
+pub fn parse_call_expr(
+    parser: &mut Parser<'_>,
+    callee: Box<Expression>,
+) -> PartialResult<Expression> {
+    expect_token!(parser => [Punct(Punctuation::LParen), ()], [FmtToken::Punct(Punctuation::LParen)]);
+
+    let mut args = Vec::new();
+    loop {
+        if let Some(Punct(Punctuation::RParen)) = parser.peek_tt() {
+            break;
+        }
+        args.push(parse!(parser => Expression));
+        expect_token!(parser => [Punct(Punctuation::Colon), (); Punct(Punctuation::RParen), (), in break], [FmtToken::Punct(Punctuation::Colon), FmtToken::Punct(Punctuation::LParen)]);
+    }
+
+    let ((), end) = expect_token!(parser => [Punct(Punctuation::RParen), ()], [FmtToken::Punct(Punctuation::RParen)]);
+
+    let start = callee.loc.clone();
+
+    Good(Expression {
+        expr: ExpressionInner::Call { callee, args },
         loc: Span::from_ends(start, end),
     })
 }

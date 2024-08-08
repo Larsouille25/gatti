@@ -8,6 +8,10 @@ use std::{
 
 use crate::Span;
 
+// TODO: to be able to expect token using a method on parser (see TODO on the
+// parser). We need to change the `Token` struct, the `TokenType` should be
+// flattened, and the literals removed and put in a optional field of Token,
+// the span don't change.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub tt: TokenType,
