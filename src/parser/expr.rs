@@ -155,7 +155,7 @@ pub fn parse_expr_precedence(
 ) -> PartialResult<Expression> {
     let mut lhs = match parser.peek_tt() {
         Some(Int(_)) => parse!(@fn parser => parse_intlit_expr),
-        Some(KW(Keyword::True | Keyword::False)) => parse!(@fn parser => parse_intlit_expr),
+        Some(KW(Keyword::True | Keyword::False)) => parse!(@fn parser => parse_boollit_expr),
         Some(Char(_)) => parse!(@fn parser => parse_charlit_expr),
         Some(Str(_)) => parse!(@fn parser => parse_strlit_expr),
         Some(Punct(Punctuation::LParen)) => parse!(@fn parser => parse_grouping_expr),
