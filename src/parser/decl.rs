@@ -3,7 +3,10 @@
 
 use crate::{
     derive_loc,
-    errors::PartialResult::{self, *},
+    errors::{
+        DiagStream,
+        PartialResult::{self, *},
+    },
     expect_token, parse,
     parser::FmtToken,
     toks::{Keyword, Punctuation, Token, TokenType::*},
@@ -199,4 +202,61 @@ pub fn parse_fun_decl(parser: &mut Parser<'_>) -> PartialResult<Declaration> {
         decl: DeclarationInner::Function { vis, proto, body },
         loc: Span::from_ends(start, end),
     })
+}
+
+#[derive(Clone, Debug)]
+pub struct DeclarationList {
+    pub decls: Vec<Declaration>,
+    pub loc: Span,
+}
+
+derive_loc!(DeclarationList);
+
+impl AstNode for DeclarationList {
+    type Output = Self;
+
+    fn parse(parser: &mut Parser<'_>) -> PartialResult<Self::Output> {
+        let mut decls = Vec::new();
+        let mut diags = DiagStream::new();
+
+        loop {
+            // If we reached the EOF, break of the loop
+            if let Some(Token { tt: EOF, .. }) = parser.peek_tok() {
+                parser.pop();
+                break;
+            }
+            // Parse the declaration
+            match Declaration::parse(parser) {
+                Good(decl) => decls.push(decl),
+                Fuzzy(decl, dgs) => {
+                    decls.push(decl);
+                    diags.extend(dgs);
+                }
+                Fail(dgs) => {
+                    diags.extend(dgs);
+                    break;
+                }
+            }
+
+            // Expect a semicolon after the decl
+            expect_token!(@noloc parser => [Punct(Punctuation::SemiColon), ()], [FmtToken::Punct(Punctuation::SemiColon)]);
+        }
+
+        let start = decls.first().map(|d| d.loc.clone()).unwrap_or_default();
+        let mut end = start.clone();
+        if let Some(Declaration { loc, .. }) = decls.last() {
+            end = loc.clone();
+        }
+
+        let res = DeclarationList {
+            decls,
+            loc: Span::from_ends(start, end),
+        };
+
+        if diags.is_empty() {
+            Good(res)
+        } else {
+            Fuzzy(res, diags)
+        }
+    }
 }

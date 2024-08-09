@@ -1,20 +1,13 @@
 //! Parsing of Gatti's tokens to an Abstract Syntax Tree.
 use std::fmt::{self, Display, Write};
 
+use decl::DeclarationList;
+
 use crate::{
-    errors::{
-        DiagCtxt, DiagStream,
-        PartialResult::{self, *},
-    },
-    expect_token,
-    toks::{
-        Keyword, Punctuation, Token, TokenStream,
-        TokenType::{self, Punct, EOF},
-    },
+    errors::{DiagCtxt, PartialResult},
+    toks::{Keyword, Punctuation, Token, TokenStream, TokenType},
     Span,
 };
-
-use self::decl::Declaration;
 
 pub mod block;
 pub mod decl;
@@ -86,38 +79,8 @@ impl<'gi> Parser<'gi> {
     /// Begin the parsing of the [`Token`]s.
     ///
     /// [`Token`]: crate::toks::Token
-    pub fn begin_parsing(&mut self) -> PartialResult<Vec<Declaration>> {
-        let mut decls = Vec::new();
-        let mut diags = DiagStream::new();
-
-        loop {
-            // If we reached the EOF, break of the loop
-            if let Some(Token { tt: EOF, .. }) = self.peek_tok() {
-                self.pop();
-                break;
-            }
-            // Parse the declaration
-            match Declaration::parse(self) {
-                Good(decl) => decls.push(decl),
-                Fuzzy(decl, dgs) => {
-                    decls.push(decl);
-                    diags.extend(dgs);
-                }
-                Fail(dgs) => {
-                    diags.extend(dgs);
-                    break;
-                }
-            }
-
-            // Expect a semicolon after the decl
-            expect_token!(@noloc self => [Punct(Punctuation::SemiColon), ()], [FmtToken::Punct(Punctuation::SemiColon)]);
-        }
-
-        if diags.is_empty() {
-            Good(decls)
-        } else {
-            Fuzzy(decls, diags)
-        }
+    pub fn run(&mut self) -> PartialResult<DeclarationList> {
+        DeclarationList::parse(self)
     }
 
     /// A diagnostic when we already poped the EOF token but we are trying to

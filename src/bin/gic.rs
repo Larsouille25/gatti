@@ -78,7 +78,7 @@ FLAGS: (todo)
 
     // 4. Parse the token stream
     let mut parser = Parser::new(&dcx, ts);
-    let parser_res = parser.begin_parsing();
+    let parser_res = parser.run();
 
     let ast = match parser_res {
         PartialResult::Good(ast) => ast,
