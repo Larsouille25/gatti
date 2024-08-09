@@ -12,7 +12,7 @@ use crate::{
     Span,
 };
 
-use super::{expected_tok_msg, AstNode, AstPart, FmtToken, Parser};
+use super::{block::Block, expected_tok_msg, AstNode, AstPart, FmtToken, Parser};
 
 /// The associativity, is used to parse the binary operations
 #[derive(Clone, Debug, PartialEq)]
@@ -140,6 +140,13 @@ impl From<TokenType> for Precedence {
 /// The higest precedence of [`Precedence`]
 pub const HIGHEST_PRECEDENCE: Precedence = Precedence::Assignement;
 
+// TODO: unify the grammars in the docs of the parsing functions, like that:
+//
+// # Grammar
+//
+// ```
+// test-expr := "test" expr
+// ```
 #[derive(Debug, Clone)]
 pub struct Expression {
     pub expr: ExpressionInner,
@@ -160,6 +167,7 @@ pub fn parse_expr_precedence(
         Some(Str(_)) => parse!(@fn parser => parse_strlit_expr),
         Some(Punct(Punctuation::LParen)) => parse!(@fn parser => parse_grouping_expr),
         Some(Ident(_)) => parse!(@fn parser => parse_path_expr),
+        Some(KW(Keyword::If)) => parse!(@fn parser => parse_if_expr),
         Some(Punct(maybe_pre_op)) if UnaryOp::from_punct(maybe_pre_op.clone()).is_some() => {
             parse!(@fn parser => parse_pre_unary_expr)
         }
@@ -220,6 +228,12 @@ pub enum ExpressionInner {
         callee: Box<Expression>,
         args: Vec<Expression>,
     },
+    If {
+        predicate: Box<Expression>,
+        true_branch: Box<Expression>,
+        false_branch: Option<Box<Expression>>,
+    },
+    Block(Box<Block>),
 }
 
 impl AstNode for Expression {
@@ -500,6 +514,57 @@ pub fn parse_call_expr(
 
     Good(Expression {
         expr: ExpressionInner::Call { callee, args },
+        loc: Span::from_ends(start, end),
+    })
+}
+
+// TODO: make the doc for this fn
+pub fn parse_block_expr(parser: &mut Parser<'_>) -> PartialResult<Expression> {
+    let block = parse!(parser => Block);
+    Good(Expression {
+        loc: block.loc.clone(),
+        expr: ExpressionInner::Block(Box::new(block)),
+    })
+}
+
+/// Parse if expression, `"if" expression block-expr [ "else" ( block-expr | if-expr-block ) ]`
+pub fn parse_if_expr(parser: &mut Parser<'_>) -> PartialResult<Expression> {
+    let ((), start) = expect_token!(parser => [KW(Keyword::If), ()], [FmtToken::KW(Keyword::If)]);
+    let predicate = Box::new(parse!(parser => Expression));
+
+    let true_branch = Box::new(parse!(@fn parser => parse_block_expr));
+
+    let mut end = true_branch.loc.clone();
+    let false_branch = if let Some(KW(Keyword::Else)) = parser.peek_tt() {
+        expect_token!(parser => [KW(Keyword::Else), ()], [FmtToken::KW(Keyword::Else)]);
+
+        let res = match parser.peek_tt() {
+            Some(KW(Keyword::If)) => Box::new(parse!(@fn parser => parse_if_expr)),
+            Some(Punct(Punctuation::LBrace)) => Box::new(parse!(@fn parser => parse_block_expr)),
+            Some(_) => {
+                // unwrap is safe because we already know the next has a token type
+                let t = parser.peek_tok().unwrap().clone();
+                return PartialResult::new_fail(parser.dcx.struct_err(
+                    expected_tok_msg(t.tt, [AstPart::IfExpression, AstPart::BlockExpression]),
+                    t.loc,
+                ));
+            }
+            None => return parser.reached_eof_diag(),
+        };
+
+        end = res.loc.clone();
+
+        Some(res)
+    } else {
+        None
+    };
+
+    Good(Expression {
+        expr: ExpressionInner::If {
+            predicate,
+            true_branch,
+            false_branch,
+        },
         loc: Span::from_ends(start, end),
     })
 }

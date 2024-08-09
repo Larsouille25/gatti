@@ -65,13 +65,19 @@ impl<'gi> Parser<'gi> {
         self.ts.get(self.ti + idx)
     }
 
+    /// Get the `nth` token type ahead of the next to be popped
+    #[inline]
+    pub fn nth_tt(&self, idx: usize) -> Option<&TokenType> {
+        self.nth_tok(idx).map(|t| &t.tt)
+    }
+
     /// Get the token that will be popped if you call `pop` after this call.
     #[inline]
     pub fn peek_tok(&self) -> Option<&Token> {
         self.nth_tok(0)
     }
 
-    /// Get the token that will be popped if you call `pop` after this call.
+    /// Get the token type that will be popped if you call `pop` after this call.
     #[inline]
     pub fn peek_tt(&self) -> Option<&TokenType> {
         self.peek_tok().map(|t| &t.tt)
@@ -205,6 +211,8 @@ impl Display for FmtToken {
 #[derive(Debug, Clone)]
 pub enum AstPart {
     Expression,
+    IfExpression,
+    BlockExpression,
     Statement,
     FunctionDef,
     Declaration,
@@ -219,6 +227,8 @@ impl Display for AstPart {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Expression => write!(f, "expression"),
+            Self::IfExpression => write!(f, "if expression"),
+            Self::BlockExpression => write!(f, "block expression"),
             Self::Statement => write!(f, "statement"),
             Self::FunctionDef => write!(f, "function definition"),
             Self::Declaration => write!(f, "declaration"),
