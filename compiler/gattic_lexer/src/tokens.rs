@@ -2,10 +2,8 @@
 
 use std::fmt::Display;
 
-use crate::{
-    toks::{Keyword, Punctuation, Token, TokenType},
-    Span,
-};
+use gattic_errors::spans::Span;
+use gattic_tokens::{Keyword, Punctuation, Token, TokenType};
 
 /// Raw tokens are used between the lexer and the parser, replaced by simple
 /// `Token` after the semicolons are inserted

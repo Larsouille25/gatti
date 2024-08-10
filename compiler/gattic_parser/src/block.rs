@@ -1,11 +1,11 @@
-use crate::{
-    derive_loc,
-    errors::PartialResult::{self, *},
-    expect_token, parse,
-    parser::stmt::Statement,
-    toks::{Punctuation, Token, TokenType::*},
-    Span,
+use crate::{derive_loc, expect_token, parse, stmt::Statement};
+
+use gattic_errors::{
+    spans::Span,
+    PartialResult::{self, *},
 };
+
+use gattic_tokens::{Punctuation, Token, TokenType::*};
 
 use super::{expr::Expression, stmt::StatementInner, AstNode, FmtToken, Parser};
 

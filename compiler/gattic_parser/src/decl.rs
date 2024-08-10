@@ -1,17 +1,14 @@
 //! Module responsible for parsing Gatti's declarations, like functions, type
 //! defs, imports
 
-use crate::{
-    derive_loc,
-    errors::{
-        DiagStream,
-        PartialResult::{self, *},
-    },
-    expect_token, parse,
-    parser::FmtToken,
-    toks::{Keyword, Punctuation, Token, TokenType::*},
-    Span,
+use crate::{derive_loc, expect_token, parse, FmtToken};
+
+use gattic_errors::{
+    spans::Span,
+    DiagStream,
+    PartialResult::{self, *},
 };
+use gattic_tokens::{Keyword, Punctuation, Token, TokenType::*};
 
 use super::{block::Block, expected_tok_msg, types::Type, AstNode, AstPart, Location, Parser};
 

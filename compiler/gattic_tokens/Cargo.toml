@@ -1,0 +1,13 @@
+[package]
+name = "gattic_tokens"
+description = "Gatti's semicolon interposer and tokens library."
+
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+
+# internal libs
+gattic_errors.workspace = true

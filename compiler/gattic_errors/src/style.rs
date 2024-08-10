@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::errors::Level;
+use crate::Level;
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 
 pub enum Style {

@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::Span;
+use gattic_errors::spans::Span;
 
 // TODO: to be able to expect token using a method on parser (see TODO on the
 // parser). We need to change the `Token` struct, the `TokenType` should be

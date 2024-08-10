@@ -1,8 +1,7 @@
-//! Module responsible for the interposing of the semicolons inside the token stream
-use crate::{
-    lexer::tokens::{RawToken, RawTokenType},
-    toks::{Keyword, Punctuation, Token, TokenStream, TokenType},
-};
+//! Crate responsible for the interposing of the semicolons inside the token stream
+
+use gattic_lexer::tokens::{RawToken, RawTokenType};
+use gattic_tokens::{Keyword, Punctuation, Token, TokenStream, TokenType};
 
 /// The interposer is a stage between lexing and parsing. It removes useless
 /// tokens like `WhiteSpace`, `NewLine` and `Comment`.

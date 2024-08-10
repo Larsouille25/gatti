@@ -1,14 +1,31 @@
-[package]
-name = "gatti"
-description = "Fast and reliable programming language."
+[workspace]
+members = [
+  "compiler/gattic",
+  "compiler/gattic_errors",
+  "compiler/gattic_interposer",
+  "compiler/gattic_lexer",
+  "compiler/gattic_parser",
+  "compiler/gattic_tokens",
+]
+
+resolver = "2"
+
+[workspace.package]
 version = "0.0.0"
 edition = "2021"
 license = "BSD-2-Clause"
 authors = ["Thibault Vincent <th1bault.vincent@proton.me>"]
 
-[dependencies]
-lazy_static = "1.5.0"
+# [dependencies]
+# lazy_static = "1.5.0"
+# termcolor = "1.4.1"
+
+[workspace.dependencies]
 termcolor = "1.4.1"
 
-[[bin]]
-name = "gic"
+# internal libs
+gattic_errors = { path = "compiler/gattic_errors" }
+gattic_interposer = { path = "compiler/gattic_interposer" }
+gattic_lexer = { path = "compiler/gattic_lexer" }
+gattic_parser = { path = "compiler/gattic_parser" }
+gattic_tokens = { path = "compiler/gattic_tokens" }

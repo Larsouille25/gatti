@@ -1,12 +1,10 @@
 use std::{env, fs::read_to_string, path::PathBuf};
 
-use gatti::{
-    errors::{DiagCtxt, PartialResult},
-    interposer::Interposer,
-    lexer::Lexer,
-    parser::Parser,
-    VERSION_AND_GIT_HASH,
-};
+// use gatti::{interposer::Interposer, lexer::Lexer, parser::Parser, VERSION_AND_GIT_HASH};
+use gattic_errors::{spans::VERSION_AND_GIT_HASH, DiagCtxt, PartialResult};
+use gattic_interposer::Interposer;
+use gattic_lexer::Lexer;
+use gattic_parser::Parser;
 use termcolor::{ColorChoice, StandardStream};
 
 fn main() {

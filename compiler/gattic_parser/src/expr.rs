@@ -1,15 +1,16 @@
 //! Module containing parsing for Gatti's Expression using a Pratt Parser or
 //! something close to it
 
-use crate::{
-    derive_loc,
-    errors::PartialResult::{self, *},
-    expect_token, parse,
-    toks::{
-        Keyword, Punctuation, Token,
-        TokenType::{self, *},
-    },
-    Span,
+use crate::{derive_loc, expect_token, parse};
+
+use gattic_errors::{
+    spans::Span,
+    PartialResult::{self, *},
+};
+
+use gattic_tokens::{
+    Keyword, Punctuation, Token,
+    TokenType::{self, *},
 };
 
 use super::{block::Block, expected_tok_msg, AstNode, AstPart, FmtToken, Parser};

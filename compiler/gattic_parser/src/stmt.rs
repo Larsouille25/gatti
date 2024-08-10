@@ -1,7 +1,8 @@
-use crate::{
-    derive_loc,
-    errors::PartialResult::{self, *},
-    parse, Span,
+use crate::{derive_loc, parse};
+
+use gattic_errors::{
+    spans::Span,
+    PartialResult::{self, *},
 };
 
 use super::{expr::Expression, AstNode, Parser};

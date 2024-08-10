@@ -3,11 +3,8 @@ use std::fmt::{self, Display, Write};
 
 use decl::DeclarationList;
 
-use crate::{
-    errors::{DiagCtxt, PartialResult},
-    toks::{Keyword, Punctuation, Token, TokenStream, TokenType},
-    Span,
-};
+use gattic_errors::{spans::Span, DiagCtxt, PartialResult};
+use gattic_tokens::{Keyword, Punctuation, Token, TokenStream, TokenType};
 
 pub mod block;
 pub mod decl;
@@ -78,7 +75,7 @@ impl<'gi> Parser<'gi> {
 
     /// Begin the parsing of the [`Token`]s.
     ///
-    /// [`Token`]: crate::toks::Token
+    /// [`Token`]: gattic_tokens::Token
     pub fn run(&mut self) -> PartialResult<DeclarationList> {
         DeclarationList::parse(self)
     }
@@ -127,7 +124,7 @@ pub trait Location {
 #[macro_export]
 macro_rules! derive_loc {
     ($t:ty $(where $( $tt:tt )* )? ) => {
-        impl $( $( $tt )* )? $crate::parser::Location for $t {
+        impl $( $( $tt )* )? $crate::Location for $t {
             #[inline]
             fn loc(&self) -> $crate::Span {
                 self.loc.clone()
@@ -220,7 +217,7 @@ macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* ] else $unexpected:block) => (
         match $parser.peek_tok() {
             $(
-                Some($crate::toks::Token { tt: $token, .. }) => {
+                Some(::gattic_tokens::Token { tt: $token, .. }) => {
                     $(
                         $between
                     )?
@@ -238,7 +235,7 @@ macro_rules! expect_token {
             $(
                 // we allow unused variable in case of a $between that terminates.
                 #[allow(unused_variables)]
-                Some($crate::toks::Token {
+                Some(::gattic_tokens::Token {
                     tt: $token,
                     ..
                 }) => {
@@ -253,11 +250,11 @@ macro_rules! expect_token {
                     ($result, $parser.pop().unwrap().loc.unwrap())
                 }
             )*
-            Some($crate::toks::Token { tt, loc: Some(loc) }) => {
-                return $crate::errors::PartialResult::new_fail(
+            Some(::gattic_tokens::Token { tt, loc: Some(loc) }) => {
+                return ::gattic_errors::PartialResult::new_fail(
                     $parser
                     .dcx
-                    .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
+                    .struct_err($crate::expected_tok_msg(tt, $expected), loc.clone())
                 )
             }
             None => return $parser.reached_eof_diag(),
@@ -270,7 +267,7 @@ macro_rules! expect_token {
             $(
                 // we allow unused variable in case of a $between that terminates.
                 #[allow(unused_variables)]
-                Some($crate::toks::Token {
+                Some(::gattic_tokens::Token {
                     tt: $token,
                     ..
                 }) => {
@@ -288,11 +285,11 @@ macro_rules! expect_token {
                     }
                 }
             )*
-            Some($crate::toks::Token { tt, loc: Some(loc) }) => {
-                return $crate::errors::PartialResult::new_fail(
+            Some(::gattic_tokens::Token { tt, loc: Some(loc) }) => {
+                return ::gattic_errors::PartialResult::new_fail(
                     $parser
                         .dcx
-                        .struct_err($crate::parser::expected_tok_msg(tt, $expected), loc.clone())
+                        .struct_err($crate::expected_tok_msg(tt, $expected), loc.clone())
                 )
             }
             None => return $parser.reached_eof_diag(),
@@ -304,17 +301,17 @@ macro_rules! expect_token {
 #[macro_export]
 macro_rules! parse {
     ($parser:expr => $node:ty) => {
-        parse!(@fn $parser => <$node as $crate::parser::AstNode>::parse)
+        parse!(@fn $parser => <$node as $crate::AstNode>::parse)
     };
     (@fn $parser:expr => $parsing_fn:expr $(, $arg:expr)*) => (
         match $parsing_fn($parser $(, $arg)*) {
-            $crate::errors::PartialResult::Good(ast) => ast,
-            $crate::errors::PartialResult::Fuzzy(ast, dgs) => {
+            ::gattic_errors::PartialResult::Good(ast) => ast,
+            ::gattic_errors::PartialResult::Fuzzy(ast, dgs) => {
                 $parser.dcx.emit_diags(dgs);
                 ast
             }
-            $crate::errors::PartialResult::Fail(err) =>
-                return $crate::errors::PartialResult::Fail(err),
+            ::gattic_errors::PartialResult::Fail(err) =>
+                return ::gattic_errors::PartialResult::Fail(err),
         }
     )
 }

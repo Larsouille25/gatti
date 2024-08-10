@@ -3,12 +3,6 @@ use std::{
     ops::{Add, AddAssign, Range, RangeInclusive, Sub},
 };
 
-pub mod errors;
-pub mod interposer;
-pub mod lexer;
-pub mod parser;
-pub mod toks;
-
 type BytePosInner = u32;
 
 pub const VERSION_AND_GIT_HASH: &str = env!("VERSION_AND_GIT_HASH");

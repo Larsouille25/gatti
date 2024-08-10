@@ -11,10 +11,11 @@ use std::vec::IntoIter;
 
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 
-use crate::{BytePos, FullLinePos, LineCol, LinesData, MultiSpan, Span};
-use style::{SetStyle, Style};
-
+pub mod spans;
 pub mod style;
+
+use spans::{BytePos, FullLinePos, LineCol, LinesData, MultiSpan, Span};
+use style::{SetStyle, Style};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Level {

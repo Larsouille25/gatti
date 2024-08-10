@@ -1,10 +1,7 @@
 //! Module responsible for the lexing of the literals in the source file,
 //! like integer, float, string and char literals
 
-use crate::{
-    errors::{Diag, DiagStream, PartialResult},
-    Span,
-};
+use gattic_errors::{spans::Span, Diag, DiagStream, PartialResult};
 
 use super::tokens::{RawToken, RawTokenType};
 

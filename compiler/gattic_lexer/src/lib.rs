@@ -3,14 +3,14 @@
 use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
 
-use crate::errors::{DiagCtxt, DiagStream, PartialResult};
-use crate::{BytePos, Span};
+use gattic_errors::spans::{BytePos, Span};
+use gattic_errors::{DiagCtxt, DiagStream, PartialResult};
+use gattic_tokens::{Keyword, Punctuation};
 
-use self::tokens::{
+use tokens::{
     RawToken,
     RawTokenType::{self, *},
 };
-use crate::toks::{Keyword, Punctuation};
 
 pub mod literals;
 pub mod tokens;

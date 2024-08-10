@@ -1,0 +1,18 @@
+[package]
+name = "gattic"
+description = "Gatti's compiler binary utility."
+
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+termcolor.workspace = true
+
+# internal libs
+gattic_errors.workspace = true
+gattic_interposer.workspace = true
+gattic_lexer.workspace = true
+gattic_parser.workspace = true
+gattic_tokens.workspace = true
